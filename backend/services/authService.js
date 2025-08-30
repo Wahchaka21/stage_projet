@@ -1,0 +1,80 @@
+const bcrypt = require('bcryptjs')
+const User = require('../schemas/userSchema')
+const { signAccessToken } = require('../utils/jwt')
+const persoError = require('../utils/error')
+
+function assertString(value, name) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw persoError('VALIDATION_ERROR', `${name} requis`, { fields: { [name]: 'requis' } })
+  }
+}
+
+function assertStrongPassword(pwd) {
+  const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+  if (!strongPwd.test(pwd)) {
+    throw persoError('VALIDATION_ERROR', 'mot de passe trop faible', {
+      fields: { password: 'min 8, une maj, une min, un chiffre' }
+    })
+  }
+}
+
+async function register({ email, password, name, lastname, nickname }) {
+  assertString(email, 'email')
+  assertString(password, 'password')
+  assertString(name, 'name')
+  assertString(lastname, 'lastname')
+  assertStrongPassword(password)
+
+  const normEmail = String(email).toLowerCase()
+
+  const exists = await User.findOne({ email: normEmail }).lean()
+  if (exists) {
+    throw persoError('DUPLICATE', 'email déjà utilisé', { fields: { email: 'déjà utilisé' } })
+  }
+
+  const user = new User({ email: normEmail, password, name, lastname, nickname, role: 'user' })
+  try {
+    await user.save()
+  } catch (err) {
+    if (err && err.code === 11000) {
+      const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
+      throw persoError('DUPLICATE', `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })
+    }
+    if (err && err.name === 'ValidationError') {
+      const fields = {}
+      for (let k in err.errors) fields[k] = err.errors[k].message
+      throw persoError('VALIDATION_ERROR', 'Données utilisateur invalides', { fields })
+    }
+    throw persoError('DB_ERROR', 'Erreur de création utilisateur', { original: err.message })
+  }
+
+  const token = signAccessToken(user)
+  return { user, token }
+}
+
+async function login({ email, password }) {
+  assertString(email, 'email')
+  assertString(password, 'password')
+
+  const normEmail = String(email).toLowerCase()
+  const user = await User.findOne({ email: normEmail })
+  if (!user) {
+    throw persoError('AUTH_ERROR', 'Invalid credentials')
+  }
+
+  const ok = await bcrypt.compare(password, user.password)
+  if (!ok) {
+    throw persoError('AUTH_ERROR', 'Invalid credentials')
+  }
+
+  await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } })
+
+  const token = signAccessToken(user)
+  return { user, token }
+}
+
+module.exports = {
+  register,
+  login,
+}
+
