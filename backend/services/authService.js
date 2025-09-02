@@ -35,7 +35,8 @@ async function register({ email, password, name, lastname, nickname }) {
   const user = new User({ email: normEmail, password, name, lastname, nickname, role: 'user' })
   try {
     await user.save()
-  } catch (err) {
+  } 
+  catch (err) {
     if (err && err.code === 11000) {
       const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
       throw persoError('DUPLICATE', `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })

@@ -67,7 +67,6 @@ async function updateUserProfile(userId, updates) {
             }
         }
 
-        // Normaliser l'email si fourni
         if (dataToUpdate.email) {
             dataToUpdate.email = String(dataToUpdate.email).toLowerCase()
         }
@@ -101,7 +100,6 @@ async function updateUserProfile(userId, updates) {
             throw persoError("VALIDATION_ERROR", "Erreur de validation", { fields })
         }
 
-        // Erreur d'unicité (email, nickname, etc.)
         if (err && err.code === 11000) {
             const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
             throw persoError("DUPLICATE", `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })
@@ -128,7 +126,6 @@ async function changeUserPassword(userId, currentPassword, newPassword) {
             })
         }
 
-        // Politique de mot de passe (min 8, maj, min, chiffre)
         const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
         if (!strongPwd.test(newPassword)) {
             throw persoError("VALIDATION_ERROR", "mot de passe trop faible", {
@@ -237,11 +234,9 @@ async function getUserById(userId) {
     }
 }
 
-// Recherche par email (partielle, insensible à la casse)
 async function searchUsersByEmail(q = "", limit = 10) {
     const term = String(q || "").trim()
     if (!term) return []
-    // échapper les caractères spéciaux regex
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(escaped, 'i')
     const docs = await UserSchema.find({ email: re })

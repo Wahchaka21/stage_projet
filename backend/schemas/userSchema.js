@@ -74,7 +74,6 @@ const UserSchema = new mongoose.Schema({
     }
 })
 
-// Masquer le mot de passe et __v lors de la sérialisation
 UserSchema.set('toJSON', {
     transform: function (doc, ret) {
         delete ret.password

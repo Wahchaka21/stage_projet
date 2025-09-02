@@ -14,7 +14,6 @@ const passport = require("./utils/passport")
 
 const app = express()
 
-// Si l'app est derrière un reverse proxy (nginx, heroku), activer pour un IP correct en rate limiting
 app.set('trust proxy', 1)
 
 mongoose.connect(config.mongo_url)
@@ -24,17 +23,15 @@ mongoose.connect(config.mongo_url)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-// Sécurité HTTP
 app.use(helmet())
 
-// CORS restreint
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true) // Autorise outils sans origin (curl, Postman) ; durcir en prod si nécessaire
+    if (!origin) return cb(null, true)
     return allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
