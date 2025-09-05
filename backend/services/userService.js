@@ -96,7 +96,7 @@ function sanitizeAndValidateInput(userData) {
     }
     
     // Nom et prénom
-    ['name', 'lastName'].forEach(field => {
+    ['name', 'lastname'].forEach(field => {
         if (userData[field]) {
             const value = userData[field].trim();
             if (value.length > 50) {
@@ -661,7 +661,7 @@ async function searchUsersByEmail(q = "", limit = 10) {
     if (!term) return []
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(escaped, 'i')
-    const docs = await UserSchema.find({ email: re, idDeleted: false })
+    const docs = await UserSchema.find({ email: re, isDeleted: false })
         .select('_id email nickname name lastname avatar createdAt')
         .limit(Math.max(1, Math.min(50, limit)))
         .lean()

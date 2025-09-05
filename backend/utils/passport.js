@@ -24,9 +24,6 @@ passport.use(new JwtStrategy(options, async (payload, done) => {
       .lean()
 
     if (!user) return done(null, false)
-    if (user.status === 'disabled') {
-        return done(null, false)
-    }
 
     return done(null, user);
   }
