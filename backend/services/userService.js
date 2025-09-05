@@ -67,13 +67,16 @@ function sanitizeAndValidateInput(userData) {
     // Email
     if (!userData.email || typeof userData.email !== 'string') {
         errors.email = 'Email requis';
-    } else {
+    } 
+    else {
         const email = userData.email.trim().toLowerCase();
         if (!validator.isEmail(email)) {
             errors.email = 'Format d\'email invalide';
-        } else if (email.length > 254) {
+        } 
+        else if (email.length > 254) {
             errors.email = 'Email trop long';
-        } else {
+        } 
+        else {
             cleanData.email = email;
         }
     }
@@ -83,9 +86,11 @@ function sanitizeAndValidateInput(userData) {
         const username = userData.username.trim();
         if (username.length < 3 || username.length > 30) {
             errors.username = 'Le nom d\'utilisateur doit contenir entre 3 et 30 caractères';
-        } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        } 
+        else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
             errors.username = 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, tirets et underscores';
-        } else {
+        } 
+        else {
             cleanData.username = username;
         }
     }
@@ -96,9 +101,11 @@ function sanitizeAndValidateInput(userData) {
             const value = userData[field].trim();
             if (value.length > 50) {
                 errors[field] = `${field} trop long`;
-            } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(value)) {
+            } 
+            else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(value)) {
                 errors[field] = `${field} contient des caractères non autorisés`;
-            } else {
+            } 
+            else {
                 cleanData[field] = value;
             }
         }
@@ -265,7 +272,8 @@ async function updateUserProfile(userId, updates) {
 
         return updated
 
-    } catch (err) {
+    } 
+    catch (err) {
         if (err.name === "ValidationError") {
             const fields = {}
             for (let key in err.errors) {
