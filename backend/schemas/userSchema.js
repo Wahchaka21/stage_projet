@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
     nickname: {
         type: String,
         unique: true,
+        sparse: true
     },
     name: {
         type: String,
@@ -54,7 +55,7 @@ const UserSchema = new mongoose.Schema({
         required: false
     },      
     postCode: {
-        type: Number,
+        type: String,
         required: false
     },
     createdAt: {
@@ -71,6 +72,14 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
         required: false
+    },
+    loginAttempts: {
+        type: Number,
+        default: 0
+    },
+    accountLocked: {
+        type: Boolean,
+        default: false
     }
 })
 

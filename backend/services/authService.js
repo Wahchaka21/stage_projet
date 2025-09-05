@@ -54,24 +54,45 @@ async function register({ email, password, name, lastname, nickname }) {
   return { user, token }
 }
 
+const MAX_LOGIN_ATTEMPTS = Number(process.env.MAX_LOGIN_ATTEMPTS || 5)
+
 async function login({ email, password }) {
   assertString(email, 'email')
   assertString(password, 'password')
 
   const normEmail = String(email).toLowerCase()
+
   const user = await User.findOne({ email: normEmail })
+
   if (!user) {
     throw persoError('AUTH_ERROR', 'Invalid credentials')
   }
 
-  const ok = await bcrypt.compare(password, user.password)
-  if (!ok) {
+  if (user.accountLocked) {
     throw persoError('AUTH_ERROR', 'Invalid credentials')
   }
 
-  await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } })
+  const ok = await bcrypt.compare(password, user.password)
+
+  if (!ok) {
+    const attempts = (user.loginAttempts || 0) + 1
+    const lock = attempts >= MAX_LOGIN_ATTEMPTS
+
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { loginAttempts: lock ? 0 : attempts, accountLocked: lock } }
+    )
+
+    throw persoError('AUTH_ERROR', 'Invalid credentials')
+  }
+
+  await User.updateOne(
+    { _id: user._id },
+    { $set: { lastLogin: new Date(), loginAttempts: 0, accountLocked: false } }
+  )
 
   const token = signAccessToken(user)
+
   return { user, token }
 }
 
