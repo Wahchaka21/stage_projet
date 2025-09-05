@@ -11,6 +11,7 @@ const cors = require("cors")
 const helmet = require("helmet")
 const config = require("./config")
 const passport = require("./utils/passport")
+const authRoutes = require("./routes/auth")
 
 const app = express()
 
@@ -40,6 +41,8 @@ app.use(cors({
 }))
 
 app.use(passport.initialize())
+
+app.use("/auth", authRoutes)
 
 const PORT = config.port || 3000
 app.listen(PORT, () => {

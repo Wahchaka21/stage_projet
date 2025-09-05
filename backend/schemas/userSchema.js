@@ -89,17 +89,15 @@ UserSchema.set('toObject', {
     }
 })
 
-UserSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next()
+const ROUNDS = Number(process.env.BCRYPT_ROUNDS || 12)
 
-    try {
-        const hash = await bcrypt.hash(this.password, 10)
-        this.password = hash
-        next()
-    } 
-    catch (err) {
-        next(err)
-    }
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next()
+  try {
+    this.password = await bcrypt.hash(this.password, ROUNDS)
+    next()
+  } 
+  catch (err) { next(err) }
 })
 
 module.exports = mongoose.model("User", UserSchema)

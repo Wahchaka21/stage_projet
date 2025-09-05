@@ -35,4 +35,3 @@ module.exports = {
   login,
   me,
 }
-

@@ -1,3 +1,2 @@
-# Ignore private env for backend
 backend/.env
-
+node_modules/

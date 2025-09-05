@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const User = require('../schemas/userSchema')
 const { signAccessToken } = require('../utils/jwt')
 const persoError = require('../utils/error')
+const userService = require("./userService")
 
 function assertString(value, name) {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -10,10 +11,10 @@ function assertString(value, name) {
 }
 
 function assertStrongPassword(pwd) {
-  const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
-  if (!strongPwd.test(pwd)) {
-    throw persoError('VALIDATION_ERROR', 'mot de passe trop faible', {
-      fields: { password: 'min 8, une maj, une min, un chiffre' }
+  const errors = userService.validatePassword(pwd)
+  if (errors && errors.length) {
+    throw persoError('VALIDATION_ERROR', 'Mot de passe non conforme', {
+      fields: { password: errors.join(', ') }
     })
   }
 }
@@ -78,4 +79,3 @@ module.exports = {
   register,
   login,
 }
-
