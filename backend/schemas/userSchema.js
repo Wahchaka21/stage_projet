@@ -1,6 +1,13 @@
 const mongoose = require("mongoose")
 const bcrypt = require("bcryptjs")
 
+const DELETION_TYPES = {
+  ADMIN_DELETE: 'admin_delete',
+  SELF_DELETE: 'self_delete',
+  GDPR_DELETE: 'gdpr_delete',
+  SYSTEM_DELETE: 'system_delete'
+}
+
 const UserSchema = new mongoose.Schema({
     avatar: {
         type: String,
@@ -80,8 +87,35 @@ const UserSchema = new mongoose.Schema({
     accountLocked: {
         type: Boolean,
         default: false
+    },
+    isDeleted: { 
+        type: Boolean, default: false 
+    },
+    deletedAt: { 
+        type: Date 
+    },
+    deletedBy: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User' 
+    },
+    deletionType: { 
+        type: String, 
+        enum: Object.values(DELETION_TYPES), 
+        required: false 
+    },
+    deletionReason: { 
+        type: String 
+    },
+    originalData: { 
+        type: String 
     }
 })
+
+UserSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+)
+
 
 UserSchema.set('toJSON', {
     transform: function (doc, ret) {
