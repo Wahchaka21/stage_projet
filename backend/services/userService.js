@@ -47,7 +47,7 @@ function validatePassword(password) {
     }
     
     // Vérifier si le mot de passe contient des séquences communes
-    const commonPatterns = ['123456', 'password', 'azerty', 'qwerty', 'admin'];
+    const commonPatterns = ['123456', 'password', 'azerty', 'qwerty', 'admin', "mot de passe", "111", "123", "222", "333", "abc"];
     const lowerPassword = password.toLowerCase();
     for (const pattern of commonPatterns) {
         if (lowerPassword.includes(pattern)) {

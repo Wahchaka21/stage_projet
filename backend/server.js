@@ -2,7 +2,7 @@ try {
     require('dotenv').config({ path: __dirname + '/.env' })
 } 
 catch (e) {
-    console.warn("Module 'dotenv' non installé. Assurez-vous que les variables d'environnement sont définies.")
+    console.warn("Module 'dotenv'")
 }
 
 const express = require("express")
@@ -12,14 +12,15 @@ const helmet = require("helmet")
 const config = require("./config")
 const passport = require("./utils/passport")
 const authRoutes = require("./routes/auth")
+const userRoutes = require("./routes/userRoute")
 
 const app = express()
 
 app.set('trust proxy', 1)
 
 mongoose.connect(config.mongo_url)
-    .then(() => console.log("MongoDB connecté"))
-    .catch(err => console.error("Erreur de connexion MongoDB :", err))
+  .then(() => console.log("MongoDB connecté"))
+  .catch(err => console.error("Erreur de connexion MongoDB :", err))
 
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
@@ -43,6 +44,7 @@ app.use(cors({
 app.use(passport.initialize())
 
 app.use("/auth", authRoutes)
+app.use("/user", userRoutes)
 
 const PORT = config.port || 3000
 app.listen(PORT, () => {

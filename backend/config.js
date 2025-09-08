@@ -8,7 +8,7 @@ const config = {
 
 if (!config.jwt_secret) {
   throw new Error(
-    'JWT_SECRET is not set. Define a strong secret in your environment (e.g. export JWT_SECRET=...) before starting the server.'
+    'JWT_SECRET is not set.'
   )
 }
 
