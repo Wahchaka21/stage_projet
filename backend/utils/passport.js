@@ -20,12 +20,12 @@ passport.use(new JwtStrategy(options, async (payload, done) => {
 
     const user = await User
       .findById(userId)
-      .select('_id email role status')
+      .select('_id email role accountLocked isDeleted')
       .lean()
 
     if (!user) return done(null, false)
 
-    return done(null, user);
+    return done(null, { ...user, iat: payload.iat });
   }
   catch (err) {
     return done(err, false)

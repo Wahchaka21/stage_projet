@@ -13,6 +13,7 @@ const config = require("./config")
 const passport = require("./utils/passport")
 const authRoutes = require("./routes/auth")
 const userRoutes = require("./routes/userRoute")
+const adminRoutes = require("./routes/adminRoute")
 
 const app = express()
 
@@ -45,6 +46,7 @@ app.use(passport.initialize())
 
 app.use("/auth", authRoutes)
 app.use("/user", userRoutes)
+app.use("/admin", adminRoutes)
 
 const PORT = config.port || 3000
 app.listen(PORT, () => {
