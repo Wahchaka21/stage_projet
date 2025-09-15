@@ -8,7 +8,7 @@ const mongoose = require("mongoose")
 const crypto = require('crypto')
 const UserDeletionArchive = require("../schemas/userDeletetionArchive")
 const { maskEmail } = require("../utils/mask")
-const { DELETION_CONFIG, DELETION_TYPES } = require("../utils/deletion")
+const { DELETION_CONFIG } = require("../utils/deletion")
 
 function assertValidId(id, name = "ID") {
     const value = String(id)
@@ -223,7 +223,7 @@ function applyCreateUserSecurity(req, res, next) {
     return createUserRateLimit(req, res, next);
 }
 
-
+const {DELETION_CONFIG, DELETION_TYPES } = require("../utils/deletion")
 
 /**
  * Valide les permissions de suppression

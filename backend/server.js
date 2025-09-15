@@ -23,6 +23,9 @@ mongoose.connect(config.mongo_url)
   .then(() => console.log("MongoDB connecté"))
   .catch(err => console.error("Erreur de connexion MongoDB :", err))
 
+const { startArchivePurgeJob } = require("./utils/purgeArchives")
+startArchivePurgeJob()
+
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 

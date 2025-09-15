@@ -36,12 +36,14 @@ async function register({ email, password, name, lastname, nickname }) {
   const user = new User({ email: normEmail, password, name, lastname, nickname, role: 'user' })
   try {
     await user.save()
-  } 
+  }
+
   catch (err) {
     if (err && err.code === 11000) {
       const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
       throw persoError('DUPLICATE', `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })
     }
+
     if (err && err.name === 'ValidationError') {
       const fields = {}
       for (let k in err.errors) fields[k] = err.errors[k].message
@@ -62,7 +64,7 @@ async function login({ email, password }) {
 
   const normEmail = String(email).toLowerCase()
 
-  const user = await User.findOne({ email: normEmail })
+  const user = await User.findOne({ email: normEmail, isDeleted: { $ne: true} })
 
   if (!user) {
     throw persoError('AUTH_ERROR', 'Invalid credentials')
