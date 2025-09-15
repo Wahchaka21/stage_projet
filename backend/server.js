@@ -14,6 +14,7 @@ const passport = require("./utils/passport")
 const authRoutes = require("./routes/auth")
 const userRoutes = require("./routes/userRoute")
 const adminRoutes = require("./routes/adminRoute")
+const cookieParser = require("cookie-parser")
 
 const app = express()
 
@@ -35,13 +36,18 @@ const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
 
+app.use(cookieParser())
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true)
+    const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:4200')
+      .split(',').map(o => o.trim())
     return allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
   optionsSuccessStatus: 204
 }))
 

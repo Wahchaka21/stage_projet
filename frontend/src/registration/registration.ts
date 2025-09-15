@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors, FormGroup } from '@angular/forms';
 import { AuthService } from './auth.service';
+import { RouterLink } from '@angular/router';
 
 
 function passwordRules(ctrl: AbstractControl): ValidationErrors | null {
@@ -30,7 +31,7 @@ function match(other: () => string) {
 @Component({
   selector: 'app-registration',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './registration.html',
   styleUrls: ['./registration.css'],
 })

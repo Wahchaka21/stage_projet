@@ -48,12 +48,10 @@ export class Login {
       next: (res) => {
         this.serverOk.set('Connexion réussie !');
 
-        // stocker le token : localStorage si "se souvenir de moi", sinon sessionStorage
         const storage = remember ? localStorage : sessionStorage;
         storage.setItem('token', res.token);
 
-        // redirection vers ton espace
-        this.router.navigateByUrl('/dashboard');
+        this.router.navigateByUrl('/accueil');
       },
       error: (err) => {
         const msg = err?.error?.error || 'Email ou mot de passe incorrect';

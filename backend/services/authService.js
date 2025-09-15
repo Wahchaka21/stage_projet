@@ -65,17 +65,9 @@ async function login({ email, password }) {
   const normEmail = String(email).toLowerCase()
 
   const user = await User.findOne({ email: normEmail, isDeleted: { $ne: true} })
-
-  if (!user) {
-    throw persoError('AUTH_ERROR', 'Information invalide')
-  }
-
-  if (user.accountLocked) {
-    throw persoError('AUTH_ERROR', 'Information invalide')
-  }
+  if (!user) throw persoError('AUTH_ERROR', 'Information invalide')
 
   const ok = await bcrypt.compare(password, user.password)
-
   if (!ok) {
     const attempts = (user.loginAttempts || 0) + 1
     const lock = attempts >= MAX_LOGIN_ATTEMPTS
@@ -84,7 +76,6 @@ async function login({ email, password }) {
       { _id: user._id },
       { $set: { loginAttempts: lock ? 0 : attempts, accountLocked: lock } }
     )
-
     throw persoError('AUTH_ERROR', 'Information invalide')
   }
 
@@ -94,11 +85,29 @@ async function login({ email, password }) {
   )
 
   const token = signAccessToken(user)
-
   return { user, token }
+}
+
+
+async function getUserForToken(userId) {
+  const u = await User.findById(userId).select("_id role isDeleted tokenVersion")
+  if (!u || u.isDeleted) return null
+  return u
+}
+
+async function issueAccessFor(user) {
+  const token = signAccessToken(user)
+  return {token}
+}
+
+async function bumpTokenVersion(userId) {
+  await User.findByIdAndUpdate(userId, {$inc: {tokenVersion: 1}})
 }
 
 module.exports = {
   register,
   login,
+  getUserForToken,
+  issueAccessFor,
+  bumpTokenVersion,
 }

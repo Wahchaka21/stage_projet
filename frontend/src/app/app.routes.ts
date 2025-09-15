@@ -12,6 +12,11 @@ export const routes: Routes = [
             import("../login/login").then((m) => m.Login)
     },
     {
+        path: "condition-utilisation",
+        loadComponent: () =>
+            import("../rgpd/rgpd").then((m) => m.Rgpd)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"

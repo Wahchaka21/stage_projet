@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Login } from './login';
+import { Rgpd } from './rgpd';
 
-describe('Login', () => {
-  let component: Login;
-  let fixture: ComponentFixture<Login>;
+describe('Rgpd', () => {
+  let component: Rgpd;
+  let fixture: ComponentFixture<Rgpd>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Login]
+      imports: [Rgpd]
     })
-      .compileComponents();
+    .compileComponents();
 
-    fixture = TestBed.createComponent(Login);
+    fixture = TestBed.createComponent(Rgpd);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
