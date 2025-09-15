@@ -1,32 +1,33 @@
-<div class="min-h-screen bg-gradient-to-br from-[#315f92] to-[#24476e] flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-        <div class="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-6 sm:p-8">
+<div class="min-h-svh bg-gradient-to-br from-[#315f92] to-[#24476e] flex items-center justify-center p-3 sm:p-4">
+    <div class="w-full max-w-[420px] mx-auto">
+        <div class="bg-white backdrop-blur rounded-2xl shadow-xl p-4 sm:p-8">
             <!-- Header -->
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-xl bg-[#fbde8a]"></div>
+            <div class="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
+                <img src="Logo Jules Coaching.svg" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl" alt="logo">
                 <div>
-                    <h1 class="text-xl font-semibold text-[#315f92]">Créer un compte</h1>
-                    <p class="text-sm text-gray-500">Rejoins la plateforme</p>
+                    <h1 class="text-lg sm:text-xl font-semibold text-[#315f92] leading-tight">Créer un compte</h1>
+                    <p class="text-xs sm:text-sm text-gray-500">Rejoins la plateforme</p>
                 </div>
             </div>
 
             <!-- Messages serveur -->
             <div *ngIf="serverOk()"
-                class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">
+                class="mb-3 sm:mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">
                 {{ serverOk() }}
             </div>
             <div *ngIf="serverError()"
-                class="mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-3 py-2 text-sm">
+                class="mb-3 sm:mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-3 py-2 text-sm">
                 {{ serverError() }}
             </div>
 
-            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-3 sm:space-y-4">
                 <!-- Email -->
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Email</label>
-                    <input type="email" formControlName="email"
-                        class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                        placeholder="ton.email@email.com" />
+                    <label class="block text-sm text-gray-700 mb-1.5">Email</label>
+                    <input type="email" formControlName="email" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                   focus:ring-2 focus:ring-[#315f92]/50
+                   placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
+                        placeholder="ton.email@email.com" inputmode="email" autocomplete="email" />
                     <p *ngIf="f['email'].touched && f['email'].invalid" class="text-rose-600 text-xs mt-1">
                         {{ f['email'].errors?.['required'] ? 'Email requis' : 'Email invalide' }}
                     </p>
@@ -34,11 +35,12 @@
 
                 <!-- Mot de passe -->
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Mot de passe</label>
-                    <input type="password" formControlName="password"
-                        class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                        placeholder="votre de mot de passe" />
-                    <ul *ngIf="f['password'].touched" class="text-xs mt-2 space-y-1">
+                    <label class="block text-sm text-gray-700 mb-1.5">Mot de passe</label>
+                    <input type="password" formControlName="password" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                   focus:ring-2 focus:ring-[#315f92]/50
+                   placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
+                        placeholder="votre mot de passe" autocomplete="new-password" />
+                    <ul *ngIf="f['password'].touched" class="text-[11px] sm:text-xs mt-2 space-y-1">
                         <li [class.text-emerald-600]="!f['password'].errors?.['minLen']"
                             [class.text-gray-500]="f['password'].errors?.['minLen']">• min. 8 caractères</li>
                         <li [class.text-emerald-600]="!f['password'].errors?.['lower']"
@@ -50,16 +52,17 @@
                         <li [class.text-emerald-600]="!f['password'].errors?.['special']"
                             [class.text-gray-500]="f['password'].errors?.['special']">• un caractère spécial</li>
                         <li *ngIf="f['password'].errors?.['common']" class="text-rose-600">• évite les séquences
-                            communes
-                        </li>
+                            communes</li>
                     </ul>
                 </div>
 
+                <!-- Confirmation -->
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Confirmer le mot de passe</label>
-                    <input type="password" formControlName="confirm"
-                        class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                        placeholder="retaper votre mot de passe" />
+                    <label class="block text-sm text-gray-700 mb-1.5">Confirmer le mot de passe</label>
+                    <input type="password" formControlName="confirm" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                   focus:ring-2 focus:ring-[#315f92]/50
+                   placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
+                        placeholder="retaper votre mot de passe" autocomplete="new-password" />
                     <p *ngIf="f['confirm'].touched && f['confirm'].errors?.['mismatch']"
                         class="text-rose-600 text-xs mt-1">
                         Les mots de passe ne correspondent pas
@@ -69,28 +72,40 @@
                 <!-- Nickname / Name / Lastname -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="sm:col-span-3">
-                        <label class="block text-sm text-gray-700 mb-1 placeholder-text-gray-300">Pseudo
-                            (optionnel)</label>
-                        <input type="text" formControlName="nickname"
-                            class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                            placeholder="votre pseudo" />
+                        <label class="block text-sm text-gray-700 mb-1.5">Pseudo (optionnel)</label>
+                        <input type="text" formControlName="nickname" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                     focus:ring-2 focus:ring-[#315f92]/50
+                     placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic" placeholder="votre pseudo"
+                            autocomplete="nickname" />
                     </div>
+
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">Prénom</label>
-                        <input type="text" formControlName="name"
-                            class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                            placeholder="Bob" />
+                        <label class="block text-sm text-gray-700 mb-1.5">Prénom</label>
+                        <input type="text" formControlName="name" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                     focus:ring-2 focus:ring-[#315f92]/50
+                     placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic" placeholder="Bob"
+                            autocomplete="given-name" />
                     </div>
+
                     <div class="sm:col-span-2">
-                        <label class="block text-sm text-gray-700 mb-1">Nom</label>
-                        <input type="text" formControlName="lastname"
-                            class="w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 focus:ring-[#315f92]/50 placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
-                            placeholder="Martinez" />
+                        <label class="block text-sm text-gray-700 mb-1.5">Nom</label>
+                        <input type="text" formControlName="lastname" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                     focus:ring-2 focus:ring-[#315f92]/50
+                     placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic" placeholder="Martinez"
+                            autocomplete="family-name" />
                     </div>
                 </div>
 
+                <!-- Terms -->
+                <label
+                    class="flex items-start gap-2 text-[13px] sm:text-sm mt-1 text-gray-700 cursor-pointer select-none">
+                    <input type="checkbox" class="mt-0.5 w-5 h-5 accent-[#315f92] rounded-sm
+                        focus:ring-2 focus:ring-offset-1 focus:ring-[#315f92] focus:outline-none" />
+                    <span>J'accepte les conditions d'utilisations</span>
+                </label>
+
                 <!-- Submit -->
-                <button type="submit" [disabled]="waiting()" class="w-full mt-2 rounded-xl bg-[#315f92] text-white font-semibold py-2.5
+                <button type="submit" [disabled]="waiting()" class="w-full mt-2 rounded-xl bg-[#315f92] text-white font-semibold py-3 sm:py-2.5
                  hover:bg-[#3e79be] transition active:scale-[0.99]
                  disabled:opacity-60 disabled:cursor-not-allowed border-2 border-[#315f92]
                  outline-none ring-0 focus:ring-4 focus:ring-[#fbde8a]/40">
@@ -103,13 +118,16 @@
                     </span>
                 </button>
 
-                <p class="text-center text-xs text-gray-500">
-                    En créant un compte, tu acceptes nos conditions d’utilisation.
-                </p>
+                <!-- Lien conditions -->
+                <div
+                    class="text-center sm:text-right text-xs sm:text-sm mt-4 text-gray-500 underline hover:text-gray-600 active:text-gray-600">
+                    <a routerLink="/conditions">Conditions d'utilisation</a>
+                </div>
             </form>
         </div>
 
-        <div class="mt-6 text-center">
+        <!-- Bandeau accent -->
+        <div class="mt-5 sm:mt-6 text-center">
             <span class="inline-block px-3 py-1 rounded-full bg-[#fbde8a] text-[#315f92] font-medium shadow">
                 Prêt ? On passe à l’action 💥
             </span>

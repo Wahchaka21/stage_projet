@@ -22,7 +22,7 @@ async function login(req, res) {
   catch (err) {
     const type = err.type || 'INTERNAL'
     const status = type === 'AUTH_ERROR' ? 401 : (type === 'VALIDATION_ERROR' ? 400 : 500)
-    res.status(status).json({ error: 'Invalid credentials' })
+    res.status(status).json({ error: 'Information invalide' })
   }
 }
 

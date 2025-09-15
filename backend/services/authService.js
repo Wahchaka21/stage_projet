@@ -67,11 +67,11 @@ async function login({ email, password }) {
   const user = await User.findOne({ email: normEmail, isDeleted: { $ne: true} })
 
   if (!user) {
-    throw persoError('AUTH_ERROR', 'Invalid credentials')
+    throw persoError('AUTH_ERROR', 'Information invalide')
   }
 
   if (user.accountLocked) {
-    throw persoError('AUTH_ERROR', 'Invalid credentials')
+    throw persoError('AUTH_ERROR', 'Information invalide')
   }
 
   const ok = await bcrypt.compare(password, user.password)
@@ -85,7 +85,7 @@ async function login({ email, password }) {
       { $set: { loginAttempts: lock ? 0 : attempts, accountLocked: lock } }
     )
 
-    throw persoError('AUTH_ERROR', 'Invalid credentials')
+    throw persoError('AUTH_ERROR', 'Information invalide')
   }
 
   await User.updateOne(

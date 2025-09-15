@@ -1,0 +1,77 @@
+<div class="min-h-svh bg-gradient-to-br from-[#315f92] to-[#24476e] flex items-center justify-center p-3 sm:p-4">
+    <div class="w-full max-w-[420px] mx-auto">
+        <div class="bg-white backdrop-blur rounded-2xl shadow-xl p-4 sm:p-8">
+            <div class="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
+                <img src="Logo Jules Coaching.svg" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl" alt="logo">
+                <div>
+                    <h1 class="text-lg sm:text-xl font-semibold text-[#315f92] leading-tight">Se connecter</h1>
+                    <p class="text-xs sm:text-sm text-gray-500">Content de te revoir</p>
+                </div>
+            </div>
+
+            <div *ngIf="serverOk()"
+                class="mb-3 sm:mb-4 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">
+                {{ serverOk() }}
+            </div>
+            <div *ngIf="serverError()"
+                class="mb-3 sm:mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 px-3 py-2 text-sm">
+                {{ serverError() }}
+            </div>
+
+            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1.5">Email</label>
+                    <input type="email" formControlName="email" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                   focus:ring-2 focus:ring-[#315f92]/50
+                   placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
+                        placeholder="ton.email@email.com" inputmode="email" autocomplete="email" />
+                    <p *ngIf="f['email'].touched && f['email'].invalid" class="text-rose-600 text-xs mt-1">
+                        {{ f['email'].errors?.['required'] ? 'Email requis' : 'Email invalide' }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1.5">Mot de passe</label>
+                    <input type="password" formControlName="password" class="w-full rounded-xl border px-3 py-2 text-base outline-none
+                   focus:ring-2 focus:ring-[#315f92]/50
+                   placeholder:text-gray-600 placeholder:opacity-70 placeholder:italic"
+                        placeholder="votre mot de passe" autocomplete="current-password" />
+                    <div class="flex items-center justify-between mt-2">
+                        <label
+                            class="flex items-center gap-2 text-[13px] sm:text-sm text-gray-700 cursor-pointer select-none">
+                            <input type="checkbox" formControlName="remember" class="w-5 h-5 accent-[#315f92] rounded-sm
+                            focus:ring-2 focus:ring-offset-1 focus:ring-[#315f92] focus:outline-none" />
+                            <span>Se souvenir de moi</span>
+                        </label>
+                        <a routerLink="/mot-de-passe-oublie"
+                            class="text-[13px] sm:text-sm text-[#315f92] hover:underline">Mot de passe oublié ?</a>
+                    </div>
+                </div>
+
+                <button type="submit" [disabled]="waiting()" class="w-full mt-2 rounded-xl bg-[#315f92] text-white font-semibold py-3 sm:py-2.5
+                 hover:bg-[#3e79be] transition active:scale-[0.99]
+                 disabled:opacity-60 disabled:cursor-not-allowed border-2 border-[#315f92]
+                 outline-none ring-0 focus:ring-4 focus:ring-[#fbde8a]/40">
+                    <span class="inline-flex items-center justify-center gap-2">
+                        <svg *ngIf="waiting()" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        <span>Se connecter</span>
+                    </span>
+                </button>
+
+                <p class="text-center text-xs sm:text-sm mt-3 text-gray-600">
+                    Pas encore de compte ?
+                    <a routerLink="/inscription" class="text-[#315f92] font-medium hover:underline">Créer un compte</a>
+                </p>
+            </form>
+        </div>
+
+        <div class="mt-5 sm:mt-6 text-center">
+            <span class="inline-block px-3 py-1 rounded-full bg-[#fbde8a] text-[#315f92] font-medium shadow">
+                On s’y remet ? 💪
+            </span>
+        </div>
+    </div>
+</div>
