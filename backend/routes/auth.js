@@ -21,9 +21,9 @@ const registerLimiter = rateLimit({
   message: { error: 'Too many accounts created from this IP, please try again later.' }
 })
 
-router.post('/register', registerLimiter, authController.register)
+router.post('/register', authController.register)
 
-router.post('/login', loginLimiter, authController.login)
+router.post('/login', authController.login)
 
 router.get('/me', isAuth, authController.me)
 

@@ -1,4 +1,5 @@
 const userService = require("./../services/userService")
+const { DELETION_TYPES } = require("../utils/deletion")
 
 async function handleCreateUser(req, res) {
     try {
@@ -19,16 +20,31 @@ async function handleCreateUser(req, res) {
 }
 
 async function handleDeleteMe(req, res) {
-    try {
-        const userId = req.user._id;
-        const result = await userService.deleteUser(userId);
-        res.status(200).json({ message: 'user supprimé', data: result });
-    } 
-    catch (err) {
-        console.error('erreur :', err);
-        res.status(500).json({ error: 'erreur interne' });
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentification requise' })
     }
-}  
+
+    const userId = String(req.user._id)
+
+    const deletionContext = {
+      requestingUser: req.user,
+      type: DELETION_TYPES.SELF_DELETE,
+      ipAddress: req.ip || 'unknown'
+    }
+
+    const result = await userService.deleteUser(userId, deletionContext)
+
+    return res.status(200).json({ message: 'Compte supprimé', data: result })
+  } 
+  catch (err) {
+    console.error('[DELETE ME] erreur :', err);
+    if (err?.type === 'PERMISSION_DENIED') return res.status(403).json(err)
+    if (err?.type === 'VALIDATION_ERROR') return res.status(400).json(err)
+    if (err?.type === 'INVALID_CREDENTIALS') return res.status(401).json(err)
+    return res.status(500).json({ error: 'Erreur interne' })
+  }
+}
 
 async function handleUpdateUserProfile(req, res) {
     try {

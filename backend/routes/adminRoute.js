@@ -13,12 +13,12 @@ router.param('userId', (req, res, next, val) => {
   next()
 })
 
-router.get('/users', isAuth, isAdmin, adminController.handleGetAllUser)
+router.get('/users', isAuth, adminController.handleGetAllUser)
 
-router.patch('/users/:userId', isAuth, isAdmin, adminController.handleUpdateUser)
+router.patch('/users/:userId', isAuth, adminController.handleUpdateUser)
 
-router.patch('/users/:userId/role', isAuth, isAdmin, adminController.handleChangeUserRole)
+router.patch('/users/:userId/role', isAuth, adminController.handleChangeUserRole)
 
-router.delete('/users/:userId', isAuth, isAdmin, adminController.handleDeleteUser)
+router.delete('/users/:userId', isAuth, adminController.handleDeleteUser)
 
 module.exports = router

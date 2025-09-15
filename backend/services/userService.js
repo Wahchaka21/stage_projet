@@ -6,8 +6,9 @@ const rateLimit = require('express-rate-limit')
 const validator = require('validator')
 
 function assertValidId(id, name = "ID") {
-    if (!isValideObjectId(id)) {
-        throw persoError("INVALID_ID", `${name} invalide`, { fields: { [name]: "ID pas bon" } } )
+    const value = String(id)
+    if (!isValideObjectId(value)) {
+        throw persoError("INVALID_ID", `${name} invalide`, { fields: { [name]: "ID pas bon" } })
     }
 }
 
@@ -154,10 +155,9 @@ async function createUser(validUser, clientIp = null) {
             createdAt: new Date(),
             loginAttempts: 0,
             accountLocked: false,
-            // Ajouter l'IP pour le tracking de sécurité (optionnel)
-            ...(clientIp)
-        };
-        
+            ...(clientIp ? { ip: clientIp } : {})
+        }
+
         // 6. Création de l'utilisateur avec transaction (si MongoDB supporte)
         const newUser = new UserSchema(userData);
         
@@ -218,18 +218,7 @@ function applyCreateUserSecurity(req, res, next) {
     return createUserRateLimit(req, res, next);
 }
 
-const DELETION_TYPES = {
-    ADMIN_DELETE: 'admin_delete',
-    SELF_DELETE: 'self_delete',
-    GDPR_DELETE: 'gdpr_delete',
-    SYSTEM_DELETE: 'system_delete'
-};
-
-const DELETION_CONFIG = {
-    GRACE_PERIOD_DAYS: 30,
-    REQUIRE_PASSWORD_CONFIRMATION: true,
-    USE_SOFT_DELETE: true
-};
+const {DELETION_CONFIG, DELETION_TYPES } = require("../utils/deletion")
 
 /**
  * Valide les permissions de suppression
@@ -490,7 +479,11 @@ async function updateUserProfile(userId, updates) {
             })
         }
 
-        if (user.isDeleted) {
+        const current = await UserSchema.findById(userId).select('isDeleted').lean()
+        if (!current) {
+            throw persoError("NOT_FOUND", "Utilisateur introuvable", { fields: { userId } })
+        }
+        if (current.isDeleted) {
             throw persoError("PERMISSION_DENIED", "Compte supprimé (soft), action refusée")
         }
 
@@ -671,8 +664,6 @@ async function searchUsersByEmail(q = "", limit = 10) {
 module.exports = {
     deleteUser,
     restoreUser,
-    DELETION_TYPES,
-    DELETION_CONFIG,
     updateUserProfile,
     changeUserPassword,
     updateUserAvatar,
