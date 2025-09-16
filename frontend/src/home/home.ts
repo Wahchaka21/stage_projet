@@ -52,7 +52,7 @@ export class Home implements OnInit {
       case 'plan': return 'Plan Alimentaire.svg'
       case 'respire': return 'Respiration.svg'
       case 'mobilite': return 'Routine Mobilité.svg'
-      case 'perso': return '/assets/img/tiles/espace-perso.svg'
+      case 'perso': return 'espace perso.png'
       case 'biblio': return 'Bibliothèque.svg'
       default: return '/assets/img/tiles/fallback.svg'
     }
