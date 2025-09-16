@@ -66,49 +66,16 @@
             <a *ngFor="let t of tuiles" [routerLink]="t.lien"
                 class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
                 <!-- visuel -->
-                <div class="relative h-24 sm:h-28 {{ t.bg }}">
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="scale-110 opacity-90">
-                            <svg class="w-14 h-14 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="1.8">
-                                <ng-container [ngSwitch]="t.icone">
-                                    <!-- semaine -->
-                                    <g *ngSwitchCase="'semaine'">
-                                        <path d="M3 5h18M3 10h18M7 2v6M17 2v6M6 14h4M14 14h4M6 18h8" />
-                                    </g>
-                                    <!-- plan -->
-                                    <g *ngSwitchCase="'plan'">
-                                        <path d="M4 6h16M4 12h16M4 18h9" />
-                                    </g>
-                                    <!-- respire -->
-                                    <g *ngSwitchCase="'respire'">
-                                        <circle cx="12" cy="12" r="4" />
-                                        <path d="M2 12h4M18 12h4M12 2v4M12 18v4" />
-                                    </g>
-                                    <!-- mobilité -->
-                                    <g *ngSwitchCase="'mobilite'">
-                                        <path d="M5 20l7-16 7 16M6 16h12" />
-                                    </g>
-                                    <!-- perso -->
-                                    <g *ngSwitchCase="'perso'">
-                                        <circle cx="12" cy="8" r="3" />
-                                        <path d="M4 20c1.5-4 6.5-6 8-6s6.5 2 8 6" />
-                                    </g>
-                                    <!-- biblio -->
-                                    <g *ngSwitchCase="'biblio'">
-                                        <path d="M4 19V5a2 2 0 0 1 2-2h3v16H6a2 2 0 0 1-2-2z" />
-                                        <path d="M14 3h4a2 2 0 0 1 2 2v14" />
-                                    </g>
-                                </ng-container>
-                            </svg>
-                        </div>
-                    </div>
+                <!-- visuel -->
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl {{ t.bg }}">
+                    <img [src]="imageFor(t.icone)" alt="" class="absolute inset-0 w-full h-full object-cover" />
                     <!-- badge accent si besoin -->
                     <div *ngIf="t.accent"
                         class="absolute top-2 left-2 rounded-full bg-[#fbde8a] px-2 py-0.5 text-[11px] font-medium text-[#315f92] shadow">
                         À jour
                     </div>
                 </div>
+
 
                 <!-- texte -->
                 <div class="px-3 py-2.5">

@@ -26,8 +26,8 @@ export class Home implements OnInit {
   private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
 
-  me: any | null = null;      // utilisateur connecté (ex: Elona)
-  coach: any | null = null;   // unique admin
+  me: any | null = null;
+  coach: any | null = null;
   loading = true;
 
   prenom = computed(() => {
@@ -45,6 +45,18 @@ export class Home implements OnInit {
     { titre: 'Espace perso', bg: 'bg-[#efe9ff]', icone: 'perso', lien: '/perso' },
     { titre: 'Bibliothèque', bg: 'bg-[#dbe8ff]', icone: 'biblio', lien: '/bibliotheque' },
   ];
+
+  imageFor(kind: Tuile['icone']): string {
+    switch (kind) {
+      case 'semaine': return 'Cette semaine.svg'
+      case 'plan': return 'Plan Alimentaire.svg'
+      case 'respire': return 'Respiration.svg'
+      case 'mobilite': return 'Routine Mobilité.svg'
+      case 'perso': return '/assets/img/tiles/espace-perso.svg'
+      case 'biblio': return 'Bibliothèque.svg'
+      default: return '/assets/img/tiles/fallback.svg'
+    }
+  }
 
   actionsRapides: Tuile[] = [
     { titre: 'Messages', bg: 'bg-white', icone: 'chat', lien: '/discussion', accent: true },
