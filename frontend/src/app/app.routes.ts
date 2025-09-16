@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authMeResolver } from '../home/auth-me.resolver';
 
 export const routes: Routes = [
     {
@@ -19,7 +20,13 @@ export const routes: Routes = [
     {
         path: "accueil",
         loadComponent: () =>
-            import("../home/home").then((m) => m.Home)
+            import("../home/home").then((m) => m.Home),
+        resolve: { me: authMeResolver }
+    },
+    {
+        path: "discussion/:peerId",
+        loadComponent: () =>
+            import("../chat/chat").then((m) => m.Chat)
     },
     {
         path: "",
