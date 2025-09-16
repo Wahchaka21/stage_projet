@@ -1,6 +1,4 @@
-<!-- src/accueil/accueil.html -->
 <div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]">
-    <!-- App bar -->
     <header class="sticky top-0 z-10 px-4 pt-4 pb-3 bg-gradient-to-b from-[#315f92] to-transparent">
         <div class="flex items-center justify-between">
             <div class="text-white">
@@ -9,7 +7,6 @@
             </div>
             <a routerLink="/notifications"
                 class="relative rounded-full p-2 text-white/90 hover:text-white active:scale-95">
-                <!-- cloche -->
                 <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
                     <path
                         d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
@@ -20,22 +17,18 @@
             </a>
         </div>
 
-        <!-- Bandeau actions rapides -->
         <div class="mt-4 grid grid-cols-2 gap-3">
-            <a *ngFor="let a of actionsRapides" [routerLink]="a.icone === 'chat'
-                  ? (chatPeerId() ? ['/discussion', chatPeerId()] : null)
-                  : a.lien" [class.pointer-events-none]="a.icone === 'chat' && !chatPeerId()"
-                [class.opacity-50]="a.icone === 'chat' && !chatPeerId()"
+            <a *ngFor="let a of actionsRapides" [routerLink]="getActionLink(a)"
+                [class.pointer-events-none]="isDisabled(a)" [class.opacity-50]="isDisabled(a)"
                 class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
+
                 <div class="rounded-lg p-2" [class.bg-[#fbde8a]]="a.accent" [class.bg-[#e9eef7]]="!a.accent">
                     <svg class="w-5 h-5 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2">
                         <ng-container [ngSwitch]="a.icone">
-                            <!-- chat -->
                             <g *ngSwitchCase="'chat'">
                                 <path d="M21 12a8 8 0 1 1-3.9-6.9L21 5l-.9 3.1A7.96 7.96 0 0 1 21 12z" />
                             </g>
-                            <!-- rdv -->
                             <g *ngSwitchCase="'rdv'">
                                 <rect x="3" y="4" width="18" height="18" rx="2" />
                                 <path d="M16 2v4M8 2v4M3 10h18" />
@@ -43,6 +36,7 @@
                         </ng-container>
                     </svg>
                 </div>
+
                 <div>
                     <p class="text-sm font-semibold text-[#315f92] leading-none">{{ a.titre }}</p>
                     <p class="text-xs text-gray-500">Accès rapide</p>
@@ -51,33 +45,27 @@
             </a>
         </div>
 
+
     </header>
 
-    <!-- Corps cartes -->
     <main class="-mt-2 rounded-t-3xl bg-white p-4 pt-6">
-        <!-- Titre de section -->
         <div class="flex items-end justify-between mb-3">
             <h2 class="text-base font-semibold text-[#315f92]">Naviguer dans l’appli</h2>
             <a routerLink="/tout" class="text-xs font-medium text-[#315f92] underline hover:no-underline">Tout voir</a>
         </div>
 
-        <!-- Grille des rubriques -->
         <div class="grid grid-cols-2 gap-3">
             <a *ngFor="let t of tuiles" [routerLink]="t.lien"
                 class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
-                <!-- visuel -->
-                <!-- visuel -->
+
                 <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl {{ t.bg }}">
                     <img [src]="imageFor(t.icone)" alt="" class="absolute inset-0 w-full h-full object-cover" />
-                    <!-- badge accent si besoin -->
                     <div *ngIf="t.accent"
                         class="absolute top-2 left-2 rounded-full bg-[#fbde8a] px-2 py-0.5 text-[11px] font-medium text-[#315f92] shadow">
                         À jour
                     </div>
                 </div>
 
-
-                <!-- texte -->
                 <div class="px-3 py-2.5">
                     <p class="text-sm font-semibold text-gray-900">{{ t.titre }}</p>
                     <p *ngIf="t.sousTitre" class="text-xs text-gray-500">{{ t.sousTitre }}</p>
@@ -85,25 +73,21 @@
             </a>
         </div>
 
-        <!-- Bloc vidéo (intégration simple, tu brancheras plus tard) -->
         <section class="mt-6">
             <div class="flex items-center justify-between mb-2">
                 <h3 class="text-base font-semibold text-[#315f92]">Vidéo du coach</h3>
                 <a routerLink="/videos" class="text-xs text-[#315f92] underline hover:no-underline">Voir tout</a>
             </div>
             <div class="aspect-video w-full overflow-hidden rounded-2xl bg-gray-100 border border-gray-200">
-                <!-- placeholder, remplace par <video> ou <iframe> YouTube/Vimeo -->
                 <div class="h-full w-full grid place-items-center text-gray-500 text-sm">
                     Prévu : intégration vidéo
                 </div>
             </div>
         </section>
 
-        <!-- Espace en bas pour la barre fixe -->
         <div class="h-20"></div>
     </main>
 
-    <!-- Barre nav fixe (mobile) -->
     <nav class="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 pb-4">
         <div class="mx-auto rounded-2xl bg-white/95 backdrop-blur shadow-lg border border-gray-100">
             <div class="grid grid-cols-3">
@@ -117,7 +101,6 @@
                 <a [routerLink]="chatPeerId() ? ['/discussion', chatPeerId()] : null"
                     [class.pointer-events-none]="!chatPeerId()" [class.opacity-50]="!chatPeerId()"
                     class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
-                    <!-- (j’ai supprimé le caractère '>' avant Discussion) -->
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
                     </svg>

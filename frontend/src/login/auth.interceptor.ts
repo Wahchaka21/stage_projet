@@ -8,19 +8,32 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const auth = inject(LoginService);
     const token = auth.accessToken();
 
-    const authReq = token
-        ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-        : req;
+    let authReq;
+    if (token) {
+        // Si on a un token → on ajoute l’Authorization
+        authReq = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    }
+    else {
+        // Sinon → on laisse la requête telle quelle
+        authReq = req;
+    }
 
     return next(authReq).pipe(
         catchError((err: HttpErrorResponse) => {
             if (err.status === 401) {
+                // Si 401 → on tente un refresh
                 return auth.refresh().pipe(
                     switchMap(() => {
                         const newToken = auth.accessToken();
-                        const retryReq = newToken
-                            ? authReq.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } })
-                            : authReq;
+
+                        let retryReq;
+                        if (newToken) {
+                            retryReq = authReq.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
+                        }
+                        else {
+                            retryReq = authReq;
+                        }
+
                         return next(retryReq);
                     }),
                     catchError(e => {
@@ -29,7 +42,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                     })
                 );
             }
-            return throwError(() => err);
+            else {
+                // Toute autre erreur → on la renvoie telle quelle
+                return throwError(() => err);
+            }
         })
     );
 };

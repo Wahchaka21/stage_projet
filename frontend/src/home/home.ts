@@ -68,22 +68,50 @@ export class Home implements OnInit {
     this.me = this.route.snapshot.data['me'] || null;
 
     // 2) Fallback si jamais le resolver n’a rien mis (optionnel)
-    const maybeFetchMe = this.me ? Promise.resolve(this.me) : this.http.get(`${API}/auth/me`).toPromise();
+    let maybeFetchMe: Promise<any>;
 
-    // 3) Une fois `me` connu, si c’est un client → chercher le coach
-    Promise.resolve(maybeFetchMe).then((u: any) => {
-      this.me = u || this.me;
-      if (this.me?.role === 'user') {
+    if (this.me) {
+      // si on a déjà l'info de l'utilisateur en mémoire
+      maybeFetchMe = Promise.resolve(this.me);
+    } else {
+      // sinon on va la chercher côté API
+      maybeFetchMe = this.http.get(`${API}/auth/me`).toPromise();
+    }
+
+    // Ensuite, une fois qu’on a récupéré l’utilisateur
+    maybeFetchMe.then((u: any) => {
+      if (u) {
+        this.me = u;
+      }
+
+      if (this.me && this.me.role === 'user') {
+        // Si c'est un client, on va chercher le coach
         this.http.get(`${API}/admin/users`).subscribe({
           next: (res: any) => {
-            const list = Array.isArray(res?.data) ? res.data : res;
-            this.coach = Array.isArray(list) ? list.find((x: any) => x.role === 'admin') : null;
+            let list;
+
+            if (Array.isArray(res?.data)) {
+              list = res.data;
+            } else {
+              list = res;
+            }
+
+            if (Array.isArray(list)) {
+              this.coach = list.find((x: any) => x.role === 'admin');
+            } else {
+              this.coach = null;
+            }
+
             this.loading = false;
           },
-          error: () => { this.coach = null; this.loading = false; }
+          error: () => {
+            this.coach = null;
+            this.loading = false;
+          }
         });
-      } else {
-        // si c’est le coach connecté → pas besoin de chercher le coach
+      }
+      else {
+
         this.loading = false;
       }
     }).catch(() => { this.loading = false; });
@@ -96,5 +124,24 @@ export class Home implements OnInit {
     }
     // plus tard: si c’est le coach, tu renverras l’ID du client sélectionné
     return null;
+  }
+
+  getActionLink(a: any): any[] | string | null {
+    if (a.icone === 'chat') {
+      if (this.chatPeerId()) {
+        return ['/discussion', this.chatPeerId()]
+      } else {
+        return null
+      }
+    } else {
+      return a.lien
+    }
+  }
+
+  isDisabled(a: any): boolean {
+    if (a.icone === 'chat' && !this.chatPeerId()) {
+      return true
+    }
+    return false
   }
 }

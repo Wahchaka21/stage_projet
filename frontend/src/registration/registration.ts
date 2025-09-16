@@ -24,7 +24,13 @@ function passwordRules(ctrl: AbstractControl): ValidationErrors | null {
 
 function match(other: () => string) {
   return (ctrl: AbstractControl): ValidationErrors | null => {
-    return ctrl.value === other() ? null : { mismatch: true };
+    if (ctrl.value === other()) {
+      // Les deux valeurs sont identiques → pas d’erreur
+      return null;
+    }
+    else {
+      return { mismatch: true };
+    }
   };
 }
 
