@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors, FormGroup } from '@angular/forms';
 import { AuthService } from './auth.service';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 
 function passwordRules(ctrl: AbstractControl): ValidationErrors | null {
@@ -42,7 +42,7 @@ export class Registration {
 
   form!: FormGroup
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {
+  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, passwordRules]],
@@ -81,6 +81,10 @@ export class Registration {
         next: () => {
           this.serverOk.set('Compte créé ! Vous pouvez vous connecter.');
           this.form.reset();
+
+          setTimeout(() => {
+            this.router.navigateByUrl("/connexion")
+          }, 1000)
         },
         error: (err) => {
           const msg = err?.error?.error || 'Erreur lors de la création du compte';

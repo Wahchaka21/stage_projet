@@ -28,29 +28,13 @@ async function register({ email, password, name, lastname, nickname }) {
 
   const normEmail = String(email).toLowerCase()
 
-  const exists = await User.findOne({ email: normEmail }).lean()
-  if (exists) {
-    throw persoError('DUPLICATE', 'email déjà utilisé', { fields: { email: 'déjà utilisé' } })
-  }
-
-  const user = new User({ email: normEmail, password, name, lastname, nickname, role: 'user' })
-  try {
-    await user.save()
-  }
-
-  catch (err) {
-    if (err && err.code === 11000) {
-      const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
-      throw persoError('DUPLICATE', `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })
-    }
-
-    if (err && err.name === 'ValidationError') {
-      const fields = {}
-      for (let k in err.errors) fields[k] = err.errors[k].message
-      throw persoError('VALIDATION_ERROR', 'Données utilisateur invalides', { fields })
-    }
-    throw persoError('DB_ERROR', 'Erreur de création utilisateur', { original: err.message })
-  }
+  const user = await userService.createUser({
+    email: normEmail,
+    password,
+    name,
+    lastname,
+    nickname,
+  })
 
   const token = signAccessToken(user)
   return { user, token }
