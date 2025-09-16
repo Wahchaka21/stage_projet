@@ -17,6 +17,11 @@ export const routes: Routes = [
             import("../rgpd/rgpd").then((m) => m.Rgpd)
     },
     {
+        path: "accueil",
+        loadComponent: () =>
+            import("../home/home").then((m) => m.Home)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"

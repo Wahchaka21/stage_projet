@@ -1,0 +1,163 @@
+<!-- src/accueil/accueil.html -->
+<div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]">
+    <!-- App bar -->
+    <header class="sticky top-0 z-10 px-4 pt-4 pb-3 bg-gradient-to-b from-[#315f92] to-transparent">
+        <div class="flex items-center justify-between">
+            <div class="text-white">
+                <p class="text-xs uppercase tracking-wide opacity-80">Bienvenue</p>
+                <h1 class="text-xl font-bold leading-tight">Salut {{ prenom() }} 👋</h1>
+            </div>
+            <a routerLink="/notifications"
+                class="relative rounded-full p-2 text-white/90 hover:text-white active:scale-95">
+                <!-- cloche -->
+                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span
+                    class="absolute -top-0.5 -right-0.5 inline-flex h-3 w-3 items-center justify-center rounded-full bg-[#fbde8a]"></span>
+            </a>
+        </div>
+
+        <!-- Bandeau actions rapides -->
+        <div class="mt-4 grid grid-cols-2 gap-3">
+            <a *ngFor="let a of actionsRapides" [routerLink]="a.lien"
+                class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
+                <div class="rounded-lg p-2" [class.bg-[#fbde8a]]="a.accent" [class.bg-[#e9eef7]]="!a.accent">
+                    <svg class="w-5 h-5 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <!-- icônes minimalistes -->
+                        <ng-container [ngSwitch]="a.icone">
+                            <!-- chat -->
+                            <g *ngSwitchCase="'chat'">
+                                <path d="M21 12a8 8 0 1 1-3.9-6.9L21 5l-.9 3.1A7.96 7.96 0 0 1 21 12z" />
+                            </g>
+                            <!-- rdv -->
+                            <g *ngSwitchCase="'rdv'">
+                                <rect x="3" y="4" width="18" height="18" rx="2" />
+                                <path d="M16 2v4M8 2v4M3 10h18" />
+                            </g>
+                        </ng-container>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-[#315f92] leading-none">{{ a.titre }}</p>
+                    <p class="text-xs text-gray-500">Accès rapide</p>
+                </div>
+                <span class="ml-auto text-[#315f92] group-hover:translate-x-0.5 transition">›</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Corps cartes -->
+    <main class="-mt-2 rounded-t-3xl bg-white p-4 pt-6">
+        <!-- Titre de section -->
+        <div class="flex items-end justify-between mb-3">
+            <h2 class="text-base font-semibold text-[#315f92]">Naviguer dans l’appli</h2>
+            <a routerLink="/tout" class="text-xs font-medium text-[#315f92] underline hover:no-underline">Tout voir</a>
+        </div>
+
+        <!-- Grille des rubriques -->
+        <div class="grid grid-cols-2 gap-3">
+            <a *ngFor="let t of tuiles" [routerLink]="t.lien"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <!-- visuel -->
+                <div class="relative h-24 sm:h-28 {{ t.bg }}">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="scale-110 opacity-90">
+                            <svg class="w-14 h-14 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8">
+                                <ng-container [ngSwitch]="t.icone">
+                                    <!-- semaine -->
+                                    <a *ngSwitchCase="'semaine'">
+                                        <path d="M3 5h18M3 10h18M7 2v6M17 2v6M6 14h4M14 14h4M6 18h8" />
+                                    </a>
+                                    <!-- plan -->
+                                    <g *ngSwitchCase="'plan'">
+                                        <path d="M4 6h16M4 12h16M4 18h9" />
+                                    </g>
+                                    <!-- respire -->
+                                    <g *ngSwitchCase="'respire'">
+                                        <circle cx="12" cy="12" r="4" />
+                                        <path d="M2 12h4M18 12h4M12 2v4M12 18v4" />
+                                    </g>
+                                    <!-- mobilité -->
+                                    <g *ngSwitchCase="'mobilite'">
+                                        <path d="M5 20l7-16 7 16M6 16h12" />
+                                    </g>
+                                    <!-- perso -->
+                                    <g *ngSwitchCase="'perso'">
+                                        <circle cx="12" cy="8" r="3" />
+                                        <path d="M4 20c1.5-4 6.5-6 8-6s6.5 2 8 6" />
+                                    </g>
+                                    <!-- biblio -->
+                                    <g *ngSwitchCase="'biblio'">
+                                        <path d="M4 19V5a2 2 0 0 1 2-2h3v16H6a2 2 0 0 1-2-2z" />
+                                        <path d="M14 3h4a2 2 0 0 1 2 2v14" />
+                                    </g>
+                                </ng-container>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- badge accent si besoin -->
+                    <div *ngIf="t.accent"
+                        class="absolute top-2 left-2 rounded-full bg-[#fbde8a] px-2 py-0.5 text-[11px] font-medium text-[#315f92] shadow">
+                        À jour
+                    </div>
+                </div>
+
+                <!-- texte -->
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">{{ t.titre }}</p>
+                    <p *ngIf="t.sousTitre" class="text-xs text-gray-500">{{ t.sousTitre }}</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Bloc vidéo (intégration simple, tu brancheras plus tard) -->
+        <section class="mt-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-base font-semibold text-[#315f92]">Vidéo du coach</h3>
+                <a routerLink="/videos" class="text-xs text-[#315f92] underline hover:no-underline">Voir tout</a>
+            </div>
+            <div class="aspect-video w-full overflow-hidden rounded-2xl bg-gray-100 border border-gray-200">
+                <!-- placeholder, remplace par <video> ou <iframe> YouTube/Vimeo -->
+                <div class="h-full w-full grid place-items-center text-gray-500 text-sm">
+                    Prévu : intégration vidéo
+                </div>
+            </div>
+        </section>
+
+        <!-- Espace en bas pour la barre fixe -->
+        <div class="h-20"></div>
+    </main>
+
+    <!-- Barre nav fixe (mobile) -->
+    <nav class="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 pb-4">
+        <div class="mx-auto rounded-2xl bg-white/95 backdrop-blur shadow-lg border border-gray-100">
+            <div class="grid grid-cols-3">
+                <a routerLink="/accueil" class="flex flex-col items-center py-2.5 text-[#315f92]">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12l9-9 9 9" />
+                        <path d="M9 21V9h6v12" />
+                    </svg>
+                    <span class="text-[11px] font-medium">Accueil</span>
+                </a>
+                <a routerLink="/chat" class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                    </svg>
+                    <span class="text-[11px] font-medium">Messages</span>
+                </a>
+                <a routerLink="/rdv" class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    <span class="text-[11px] font-medium">RDV</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
