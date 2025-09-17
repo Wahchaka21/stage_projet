@@ -205,6 +205,8 @@ export class Registration {
         this.serverOk.set('Compte créé ! Vous pouvez vous connecter.')
         this.form.reset()
 
+        this.waiting.set(false)
+
         // petite redirection après succès
         setTimeout(() => {
           this.router.navigateByUrl('/connexion')
@@ -216,6 +218,8 @@ export class Registration {
           msg = err.error.error;
         }
         this.serverError.set(msg)
+
+        this.waiting.set(false)
       },
       complete: () => {
         this.waiting.set(false)

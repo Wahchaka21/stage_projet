@@ -70,6 +70,8 @@ export class Login {
         // stocker le token
         storage.setItem('token', res.token)
 
+        this.waiting.set(false)
+
         // redirection
         this.router.navigateByUrl('/accueil')
       },
@@ -80,6 +82,8 @@ export class Login {
           msg = err.error.error
         }
         this.serverError.set(msg)
+
+        this.waiting.set(false)
       },
       complete: () => {
         // spinner OFF
