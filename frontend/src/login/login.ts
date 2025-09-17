@@ -12,11 +12,11 @@ import { LoginService } from './login.service';
   templateUrl: './login.html',
 })
 export class Login {
-  waiting = signal(false);
-  serverError = signal<string | null>(null);
-  serverOk = signal<string | null>(null);
+  waiting = signal(false)
+  serverError = signal<string | null>(null)
+  serverOk = signal<string | null>(null)
 
-  form!: FormGroup;
+  form!: FormGroup
 
   constructor(
     private fb: FormBuilder,
@@ -27,37 +27,64 @@ export class Login {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
       remember: [false],
-    });
+    })
   }
 
   get f() { return this.form.controls; }
 
-  onSubmit() {
-    this.serverError.set(null);
-    this.serverOk.set(null);
+  onSubmit(): void {
+    // reset des messages serveur à chaque tentative
+    this.serverError.set(null)
+    this.serverOk.set(null)
 
+    // si le form est invalide -> on montre les erreurs et on stoppe
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
+      this.form.markAllAsTouched()
+      return
     }
 
-    const { email, password, remember } = this.form.value;
-    this.waiting.set(true);
+    // extraire les valeurs et les lit
+    const raw = this.form.value
+    const email = raw.email as string
+    const password = raw.password as string
+    const remember = Boolean(raw.remember)
 
+    // passe waiting à true
+    this.waiting.set(true)
+
+    // appel API
     this.auth.login({ email, password }).subscribe({
       next: (res) => {
-        this.serverOk.set('Connexion réussie !');
+        // message succès
+        this.serverOk.set('Connexion réussie !')
 
-        const storage = remember ? localStorage : sessionStorage;
-        storage.setItem('token', res.token);
+        // choisir l'endroit où stocker le token
+        let storage: Storage
+        if (remember === true) {
+          storage = localStorage
+        }
+        else {
+          storage = sessionStorage
+        }
 
-        this.router.navigateByUrl('/accueil');
+        // stocker le token
+        storage.setItem('token', res.token)
+
+        // redirection
+        this.router.navigateByUrl('/accueil')
       },
       error: (err) => {
-        const msg = err?.error?.error || 'Email ou mot de passe incorrect';
-        this.serverError.set(msg);
+        // construire un message d’erreur lisible
+        let msg = 'Email ou mot de passe incorrect'
+        if (err && err.error && err.error.error) {
+          msg = err.error.error
+        }
+        this.serverError.set(msg)
       },
-      complete: () => this.waiting.set(false),
-    });
+      complete: () => {
+        // spinner OFF
+        this.waiting.set(false)
+      },
+    })
   }
 }

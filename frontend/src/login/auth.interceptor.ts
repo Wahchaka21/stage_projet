@@ -1,21 +1,21 @@
-// auth.interceptor.ts
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { LoginService } from './login.service';
 import { catchError, switchMap, throwError } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-    const auth = inject(LoginService);
-    const token = auth.accessToken();
+    const auth = inject(LoginService)
+    const token = auth.accessToken()
 
-    let authReq;
+    let authReq
+
     if (token) {
         // Si on a un token → on ajoute l’Authorization
-        authReq = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+        authReq = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     }
     else {
         // Sinon → on laisse la requête telle quelle
-        authReq = req;
+        authReq = req
     }
 
     return next(authReq).pipe(
@@ -24,28 +24,29 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 // Si 401 → on tente un refresh
                 return auth.refresh().pipe(
                     switchMap(() => {
-                        const newToken = auth.accessToken();
+                        const newToken = auth.accessToken()
 
-                        let retryReq;
+                        let retryReq
+
                         if (newToken) {
-                            retryReq = authReq.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
+                            retryReq = authReq.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } })
                         }
                         else {
-                            retryReq = authReq;
+                            retryReq = authReq
                         }
 
-                        return next(retryReq);
+                        return next(retryReq)
                     }),
-                    catchError(e => {
-                        auth.accessToken.set(null);
-                        return throwError(() => e);
+                    catchError(err => {
+                        auth.accessToken.set(null)
+                        return throwError(() => err)
                     })
-                );
+                )
             }
             else {
                 // Toute autre erreur → on la renvoie telle quelle
-                return throwError(() => err);
+                return throwError(() => err)
             }
         })
-    );
-};
+    )
+}
