@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between">
             <div class="text-white">
                 <p class="text-xs uppercase tracking-wide opacity-80">Bienvenue</p>
-                <h1 class="text-xl font-bold leading-tight">Salut {{ prenom() || "...." }} 👋</h1>
+                <h1 class="text-xl font-bold leading-tight">Salut {{ getPrenom() || '....' }} 👋</h1>
             </div>
             <a routerLink="/notifications"
                 class="relative rounded-full p-2 text-white/90 hover:text-white active:scale-95">
@@ -18,34 +18,39 @@
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-3">
-            <a *ngFor="let a of actionsRapides" [routerLink]="getActionLink(a)"
-                [class.pointer-events-none]="isDisabled(a)" [class.opacity-50]="isDisabled(a)"
-                class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
 
-                <div class="rounded-lg p-2" [class.bg-[#fbde8a]]="a.accent" [class.bg-[#e9eef7]]="!a.accent">
+            <a [routerLink]="getChatLink()" [class.pointer-events-none]="isChatDisabled()"
+                [class.opacity-50]="isChatDisabled()"
+                class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
+                <div class="rounded-lg p-2 bg-[#fbde8a]">
                     <svg class="w-5 h-5 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2">
-                        <ng-container [ngSwitch]="a.icone">
-                            <g *ngSwitchCase="'chat'">
-                                <path d="M21 12a8 8 0 1 1-3.9-6.9L21 5l-.9 3.1A7.96 7.96 0 0 1 21 12z" />
-                            </g>
-                            <g *ngSwitchCase="'rdv'">
-                                <rect x="3" y="4" width="18" height="18" rx="2" />
-                                <path d="M16 2v4M8 2v4M3 10h18" />
-                            </g>
-                        </ng-container>
+                        <path d="M21 12a8 8 0 1 1-3.9-6.9L21 5l-.9 3.1A7.96 7.96 0 0 1 21 12z" />
                     </svg>
                 </div>
-
                 <div>
-                    <p class="text-sm font-semibold text-[#315f92] leading-none">{{ a.titre }}</p>
+                    <p class="text-sm font-semibold text-[#315f92] leading-none">Messages</p>
+                    <p class="text-xs text-gray-500">Accès rapide</p>
+                </div>
+                <span class="ml-auto text-[#315f92] group-hover:translate-x-0.5 transition">›</span>
+            </a>
+
+            <a routerLink="/rdv"
+                class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
+                <div class="rounded-lg p-2 bg-[#e9eef7]">
+                    <svg class="w-5 h-5 text-[#315f92]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-[#315f92] leading-none">Mes RDV</p>
                     <p class="text-xs text-gray-500">Accès rapide</p>
                 </div>
                 <span class="ml-auto text-[#315f92] group-hover:translate-x-0.5 transition">›</span>
             </a>
         </div>
-
-
     </header>
 
     <main class="-mt-2 rounded-t-3xl bg-white p-4 pt-6">
@@ -55,20 +60,71 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-            <a *ngFor="let t of tuiles" [routerLink]="t.lien"
-                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
 
-                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl {{ t.bg }}">
-                    <img [src]="imageFor(t.icone)" alt="" class="absolute inset-0 w-full h-full object-cover" />
-                    <div *ngIf="t.accent"
+            <a routerLink="/semaine"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#eaf2fb]">
+                    <img src="Cette semaine.svg" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                    <div
                         class="absolute top-2 left-2 rounded-full bg-[#fbde8a] px-2 py-0.5 text-[11px] font-medium text-[#315f92] shadow">
                         À jour
                     </div>
                 </div>
-
                 <div class="px-3 py-2.5">
-                    <p class="text-sm font-semibold text-gray-900">{{ t.titre }}</p>
-                    <p *ngIf="t.sousTitre" class="text-xs text-gray-500">{{ t.sousTitre }}</p>
+                    <p class="text-sm font-semibold text-gray-900">Cette semaine</p>
+                    <p class="text-xs text-gray-500">Objectifs & séances</p>
+                </div>
+            </a>
+
+            <a routerLink="/plan-alimentaire"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#d7f2b9]">
+                    <img src="Plan Alimentaire.svg" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">Plan alimentaire</p>
+                </div>
+            </a>
+
+            <a routerLink="/respiration"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#e9f5ff]">
+                    <img src="Respiration.svg" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">Respiration</p>
+                    <p class="text-xs text-gray-500">Techniques & tempo</p>
+                </div>
+            </a>
+
+            <a routerLink="/mobilite"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#ffe2c9]">
+                    <img src="Routine Mobilité.svg" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">Mobilité</p>
+                    <p class="text-xs text-gray-500">Routine quotidienne</p>
+                </div>
+            </a>
+
+            <a routerLink="/perso"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#efe9ff]">
+                    <img src="espace perso.png" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">Espace perso</p>
+                </div>
+            </a>
+
+            <a routerLink="/bibliotheque"
+                class="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-md active:scale-[0.99] border border-gray-100">
+                <div class="relative h-24 sm:h-28 overflow-hidden rounded-xl bg-[#dbe8ff]">
+                    <img src="Bibliothèque.svg" alt="" class="absolute inset-0 w-full h-full object-cover" />
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-sm font-semibold text-gray-900">Bibliothèque</p>
                 </div>
             </a>
         </div>
@@ -98,14 +154,16 @@
                     </svg>
                     <span class="text-[11px] font-medium">Accueil</span>
                 </a>
-                <a [routerLink]="chatPeerId() ? ['/discussion', chatPeerId()] : null"
-                    [class.pointer-events-none]="!chatPeerId()" [class.opacity-50]="!chatPeerId()"
+
+                <a [routerLink]="getChatLink()" [class.pointer-events-none]="isChatDisabled()"
+                    [class.opacity-50]="isChatDisabled()"
                     class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
                     </svg>
                     <span class="text-[11px] font-medium">Messages</span>
                 </a>
+
                 <a routerLink="/rdv" class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" />
