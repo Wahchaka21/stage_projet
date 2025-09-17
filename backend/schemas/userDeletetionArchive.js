@@ -1,7 +1,11 @@
 const mongoose = require('mongoose')
 
 const UserDeletionArchiveSchema = new mongoose.Schema({
-  originalUserId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+  originalUserId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    required: true, 
+    index: true 
+  },
   userData: {
     emailMasked: String,
     nickname: String,
@@ -12,14 +16,30 @@ const UserDeletionArchiveSchema = new mongoose.Schema({
     lastLogin: Date
   },
   deletionContext: {
-    deletedAt: { type: Date, default: Date.now },
-    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    deletionType: { type: String, required: true },
+    deletedAt: { 
+      type: Date, 
+      default: Date.now 
+    },
+    deletedBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User' 
+    },
+    deletionType: { 
+      type: String, 
+      required: true 
+    },
     reason: String,
     ipAddress: String
   },
-  dataHash: { type: String, required: true, index: true },
-  keptUntil: { type: Date, index: true } // rétention (ex: 30 jours)
+  dataHash: { 
+    type: String, 
+    required: true, 
+    index: true 
+  },
+  keptUntil: { 
+    type: Date, 
+    index: true 
+  }
 }, { timestamps: true, versionKey: false })
 
 module.exports = mongoose.model('UserDeletionArchive', UserDeletionArchiveSchema)

@@ -7,7 +7,7 @@ async function register(req, res) {
     const { email, password, name, lastname, nickname } = req.body || {}
     const { user, token } = await authService.register({ email, password, name, lastname, nickname })
 
-    // on pose le refresh en cookie HttpOnly (durée longue)
+    // on pose le refresh en cookie HttpOnly
     const refresh = signRefreshToken(user, user.tokenVersion || 0)
     res.cookie('refreshToken', refresh, buildRefreshCookieOptions())
 
@@ -15,7 +15,16 @@ async function register(req, res) {
   } 
   catch (err) {
     const type = err.type || 'INTERNAL'
-    const status = type === 'VALIDATION_ERROR' ? 400 : (type === 'DUPLICATE' ? 409 : 500)
+    let status
+    if (type === 'VALIDATION_ERROR') {
+      status = 400
+    } 
+    else if (type === 'DUPLICATE') {
+      status = 409
+    } 
+    else {
+      status = 500
+    }
     res.status(status).json({ error: err.message || 'Erreur', fields: err.fields || {} })
   }
 }
@@ -25,8 +34,21 @@ async function login(req, res) {
     const { email, password, remember } = req.body || {}
     const { user, token } = await authService.login({ email, password })
 
-    const refreshExpiresIn = remember ? '30d' : '1d'
-    const refreshMs = remember ? 30*24*60*60*1000 : 24*60*60*1000
+    let refreshExpiresIn
+    if (remember) {
+      refreshExpiresIn = '30d'
+    } 
+    else {
+      refreshExpiresIn = '1d'
+    }
+
+    let refreshMs
+    if (remember) {
+      refreshMs = 30 * 24 * 60 * 60 * 1000
+    } 
+    else {
+      refreshMs = 24 * 60 * 60 * 1000
+    }
 
     const refresh = signRefreshToken(user, user.tokenVersion || 0, { expiresIn: refreshExpiresIn })
 
@@ -36,7 +58,16 @@ async function login(req, res) {
   } 
   catch (err) {
     const type = err.type || 'INTERNAL'
-    const status = type === 'AUTH_ERROR' ? 401 : (type === 'VALIDATION_ERROR' ? 400 : 500)
+    let status
+    if (type === 'AUTH_ERROR') {
+      status = 401
+    } 
+    else if (type === 'VALIDATION_ERROR') {
+      status = 400
+    } 
+    else {
+      status = 500
+    }
     res.status(status).json({ error: 'Information invalide' })
   }
 }
@@ -50,16 +81,15 @@ async function refresh(req, res) {
     try { payload = verifyRefreshToken(token) }
     catch { return res.status(401).json({ error: 'Refresh invalide' }) }
 
-    // authService.getUserById minimal pour vérifier qu’il existe encore et n’est pas soft-deleted
+    // authService.getUserById minimal pour vérifier qu'il existe encore et n'est pas soft-deleted
     const user = await authService.getUserForToken(payload.sub)
     if (!user) return res.status(401).json({ error: 'Utilisateur invalide' })
 
-    // (optionnel) si tu utilises tokenVersion dans ton schema
     if (typeof user.tokenVersion === 'number' && payload.ver !== user.tokenVersion) {
       return res.status(401).json({ error: 'Refresh révoqué' })
     }
 
-    // re-génère un access court + rotate le refresh
+    // re-génére un access court + rotate le refresh
     const { token: newAccess } = await authService.issueAccessFor(user)
     const newRefresh = signRefreshToken(user, user.tokenVersion || 0)
     res.cookie('refreshToken', newRefresh, buildRefreshCookieOptions())
@@ -73,7 +103,7 @@ async function refresh(req, res) {
 
 async function logout(req, res) {
   try {
-    // (optionnel) si tu veux invalider globalement tous les refresh de l’utilisateur connecté
+    // invalider globalement tous les refresh de l'utilisateur connecté
     // if (req.user?._id) await authService.bumpTokenVersion(req.user._id)
 
     res.clearCookie('refreshToken', { ...buildRefreshCookieOptions(), maxAge: 0 })

@@ -1,8 +1,8 @@
 try {
     require('dotenv').config({ path: __dirname + '/.env' })
 } 
-catch (e) {
-    console.warn("Module 'dotenv'")
+catch (err) {
+    console.warn("Module 'dotenv'", err)
 }
 
 const express = require("express")
@@ -17,7 +17,7 @@ const userRoutes = require("./routes/userRoute")
 const adminRoutes = require("./routes/adminRoute")
 const chatRoutes = require("./routes/chatRoute")
 const cookieParser = require("cookie-parser")
-const {initSockets} = require("./sockets")
+const { initSockets } = require("./sockets")
 
 const app = express()
 
@@ -30,8 +30,8 @@ mongoose.connect(config.mongo_url)
 const { startArchivePurgeJob } = require("./utils/purgeArchives")
 startArchivePurgeJob()
 
-app.use(express.json({ limit: '1mb' }))
-app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+app.use(express.json({ limit: "1mb" }))
+app.use(express.urlencoded({ extended: true, limit: "1mb" }))
 
 app.use(helmet())
 
@@ -39,13 +39,23 @@ app.use(cookieParser())
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true)
-    const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:4200')
-      .split(',').map(o => o.trim())
-    return allowedOrigins.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))
+    if (!origin) {
+      cb(null, true)
+      return
+    }
+
+    const raw = process.env.CORS_ORIGINS || "http://localhost:5173,http://localhost:4200"
+    const allowedOrigins = raw.split(",").map(o => o.trim())
+
+    if (allowedOrigins.includes(origin)) {
+      cb(null, true)
+    } 
+    else {
+      cb(new Error("Not allowed by CORS"))
+    }
   },
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
   optionsSuccessStatus: 204
 }))

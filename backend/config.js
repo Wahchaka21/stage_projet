@@ -8,7 +8,7 @@ const config = {
 
 if (!config.jwt_secret) {
   throw new Error(
-    'JWT_SECRET is not set.'
+    "JWT_SECRET n'a pas été initié."
   )
 }
 

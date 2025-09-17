@@ -28,202 +28,214 @@ function validatePassword(password) {
     const errors = [];
     
     if (!password || typeof password !== 'string') {
-        errors.push('Le mot de passe est requis');
-        return errors;
+        errors.push('Le mot de passe est requis')
+        return errors
     }
     
     if (password.length < 8) {
-        errors.push('Le mot de passe doit contenir au moins 8 caractères');
+        errors.push('Le mot de passe doit contenir au moins 8 caractères')
     }
     
     if (!/(?=.*[a-z])/.test(password)) {
-        errors.push('Le mot de passe doit contenir au moins une minuscule');
+        errors.push('Le mot de passe doit contenir au moins une minuscule')
     }
     
     if (!/(?=.*[A-Z])/.test(password)) {
-        errors.push('Le mot de passe doit contenir au moins une majuscule');
+        errors.push('Le mot de passe doit contenir au moins une majuscule')
     }
     
     if (!/(?=.*\d)/.test(password)) {
-        errors.push('Le mot de passe doit contenir au moins un chiffre');
+        errors.push('Le mot de passe doit contenir au moins un chiffre')
     }
     
     if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?])/.test(password)) {
-        errors.push('Le mot de passe doit contenir au moins un caractère spécial');
+        errors.push('Le mot de passe doit contenir au moins un caractère spécial')
     }
     
     // Vérifier si le mot de passe contient des séquences communes
-    const commonPatterns = ['123456', 'password', 'azerty', 'qwerty', 'admin', "mot de passe", "111", "123", "222", "333", "abc"];
-    const lowerPassword = password.toLowerCase();
+    const commonPatterns = ['123456', 'password', 'azerty', 'qwerty', 'admin', "mot de passe", "111", "123", "222", "333", "abc"]
+    const lowerPassword = password.toLowerCase()
     for (const pattern of commonPatterns) {
         if (lowerPassword.includes(pattern)) {
-            errors.push('Le mot de passe ne peut pas contenir de séquences communes');
-            break;
+            errors.push('Le mot de passe ne peut pas contenir de séquences communes')
+            break
         }
     }
     
-    return errors;
+    return errors
 }
 
 // Nettoyage et validation des données d'entrée
 function sanitizeAndValidateInput(userData) {
-    const errors = {};
-    const cleanData = {};
+    const errors = {}
+    const cleanData = {}
     
     // Email
     if (!userData.email || typeof userData.email !== 'string') {
-        errors.email = 'Email requis';
+        errors.email = 'Email requis'
     } 
     else {
-        const email = userData.email.trim().toLowerCase();
+        const email = userData.email.trim().toLowerCase()
         if (!validator.isEmail(email)) {
-            errors.email = 'Format d\'email invalide';
+            errors.email = 'Format d\'email invalide'
         } 
         else if (email.length > 254) {
-            errors.email = 'Email trop long';
+            errors.email = 'Email trop long'
         } 
         else {
-            cleanData.email = email;
+            cleanData.email = email
         }
     }
     
-    // Nom d'utilisateur (si applicable)
+    // Nom d'utilisateur
     if (userData.nickname) {
-        const nickname = userData.nickname.trim();
+        const nickname = userData.nickname.trim()
         if (nickname.length < 3 || nickname.length > 30) {
-            errors.nickname = 'Le nom d\'utilisateur doit contenir entre 3 et 30 caractères';
+            errors.nickname = 'Le nom d\'utilisateur doit contenir entre 3 et 30 caractères'
         } 
         else if (!/^[a-zA-Z0-9_-]+$/.test(nickname)) {
-            errors.nickname = 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, tirets et underscores';
+            errors.nickname = 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, tirets et underscores'
         } 
         else {
-            cleanData.nickname = nickname;
+            cleanData.nickname = nickname
         }
     }
     
     // Nom et prénom
     ['name', 'lastname'].forEach(field => {
         if (userData[field]) {
-            const value = userData[field].trim();
+            const value = userData[field].trim()
             if (value.length > 50) {
-                errors[field] = `${field} trop long`;
+                errors[field] = `${field} trop long`
             } 
             else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(value)) {
-                errors[field] = `${field} contient des caractères non autorisés`;
+                errors[field] = `${field} contient des caractères non autorisés`
             } 
             else {
-                cleanData[field] = value;
+                cleanData[field] = value
             }
         }
     });
     
-    return { errors, cleanData };
+    return { errors, cleanData }
 }
 
 async function createUser(validUser, clientIp = null) {
-    const startTime = Date.now();
+    const startTime = Date.now()
     
     try {
         // 1. Validation et nettoyage des données d'entrée
-        const { errors: inputErrors, cleanData } = sanitizeAndValidateInput(validUser);
+        const { errors: inputErrors, cleanData } = sanitizeAndValidateInput(validUser)
         if (Object.keys(inputErrors).length > 0) {
             throw persoError("VALIDATION_ERROR", "Données d'entrée invalides", {
                 fields: inputErrors
-            });
+            })
         }
         
         // 2. Validation renforcée du mot de passe
-        const passwordErrors = validatePassword(validUser.password);
+        const passwordErrors = validatePassword(validUser.password)
         if (passwordErrors.length > 0) {
             throw persoError("VALIDATION_ERROR", "Mot de passe non conforme", {
                 fields: { password: passwordErrors.join(', ') }
-            });
+            })
         }
         
         // 3. Vérification de l'unicité de l'email AVANT le hachage
         const existingUser = await UserSchema.findOne({ 
-            email: cleanData.email 
-        }).select('_id').lean();
+            email: cleanData.email
+        }).select('_id').lean()
         
         if (existingUser) {
             // Délai artificiel pour éviter le timing attack
-            await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+            await new Promise(resolve => setTimeout(
+                resolve, 200 + Math.random() * 300
+            ))
             throw persoError("DUPLICATE", "Email déjà utilisé", {
                 fields: { email: 'Cet email est déjà associé à un compte' }
-            });
+            })
         }
         
         // 5. Préparation des données finales
         const userData = {
+            //on copie tous les champs qui étaient déjà validés
             ...cleanData,
             password: validUser.password,
             createdAt: new Date(),
             loginAttempts: 0,
             accountLocked: false,
-            ...(clientIp ? { ip: clientIp } : {})
+            if(clientIp) {
+                userData.ip = clientIp
+            }
         }
 
-        // 6. Création de l'utilisateur avec transaction (si MongoDB supporte)
-        const newUser = new UserSchema(userData);
+        // 6. Création de l'utilisateur avec transaction
+        const newUser = new UserSchema(userData)
         
         // Validation Mongoose
-        await newUser.validate();
+        await newUser.validate()
         
         // Sauvegarde
-        const savedUser = await newUser.save();
+        const savedUser = await newUser.save()
         
         // 7. Logs de sécurité
-        console.log(`[SECURITY] New user created: ${cleanData.email} from IP: ${clientIp || 'unknown'} in ${Date.now() - startTime}ms`);
+        console.log(`[SECURITY] New user created: ${cleanData.email} from IP: ${clientIp || 'unknown'} in ${Date.now() - startTime}ms`)
         
         // 8. Retourner l'utilisateur sans le mot de passe
-        const userResponse = savedUser.toObject();
-        delete userResponse.password;
-        delete userResponse.__v;
+        const userResponse = savedUser.toObject()
+        delete userResponse.password
+        delete userResponse.__v
         
-        return userResponse;
+        return userResponse
         
-    } catch (err) {
+    } 
+    catch (err) {
         // Logs d'erreur de sécurité
-        console.error(`[SECURITY ERROR] User creation failed: ${err.message} from IP: ${clientIp || 'unknown'}`);
+        console.error(`[SECURITY ERROR] User creation failed: ${err.message} from IP: ${clientIp || 'unknown'}`)
         
         // Gestion des erreurs Mongoose
         if (err.name === "ValidationError") {
-            const fields = {};
+            const fields = {}
             for (let key in err.errors) {
-                fields[key] = err.errors[key].message;
+                fields[key] = err.errors[key].message
             }
-            throw persoError("VALIDATION_ERROR", "Données non conformes au schéma", { fields });
+            throw persoError("VALIDATION_ERROR", "Données non conformes au schéma", { fields })
         }
         
         // Gestion des doublons
         if (err.code === 11000) {
-            const dupField = Object.keys(err.keyPattern || {})[0] || 'field';
+            const dupField = Object.keys(err.keyPattern || {})[0] || 'field'
             
             // Délai artificiel pour éviter le timing attack
-            await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+            await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300))
             
             throw persoError("DUPLICATE", `${dupField} déjà utilisé`, {
                 fields: { [dupField]: 'Cette valeur est déjà utilisée' }
-            });
+            })
         }
         
         // Si c'est déjà une erreur personnalisée, la relancer
         if (err.type) {
-            throw err;
+            throw err
         }
         
-        // Erreur générique
+        let originalMessage
+
+        if (process.env.NODE_ENV === 'development') {
+            originalMessage = err.message
+        } 
+        else {
+            originalMessage = 'Erreur interne'
+        }
+
         throw persoError("DB_ERROR", "Erreur lors de la création du compte", {
-            original: process.env.NODE_ENV === 'development' ? err.message : 'Erreur interne'
-        });
+            original: originalMessage
+        })
     }
 }
 
 function applyCreateUserSecurity(req, res, next) {
-    return createUserRateLimit(req, res, next);
+    return createUserRateLimit(req, res, next)
 }
-
-
 
 /**
  * Valide les permissions de suppression
@@ -301,34 +313,35 @@ async function archiveUserData(user, deletionContext) {
     // 4) Sauvegarde en DB
     const saved = await archiveDoc.save()
 
-    // 5) (Optionnel) Log sobre (sans PII)
+    //og
     console.info(`[USER_DELETION_ARCHIVE] user=${String(user._id)} type=${deletionContext.type} hash=${dataHash}`)
 
     return { dataHash, archiveId: saved._id }
-  } catch (error) {
+  } 
+  catch (error) {
     throw persoError('ARCHIVE_ERROR', "Erreur lors de l'archivage", { original: error.message })
   }
 }
 
 /**
- * Nettoyage des données liées (cascade)
+ * Nettoyage des données liées
  */
 async function cleanupRelatedData(userId, options = { dryRun: false }) {
     const cleanupTasks = [];
 
     try {
         if (!options.dryRun) {
-            await Promise.all(cleanupTasks);
+            await Promise.all(cleanupTasks)
         }
 
         return {
             tasksExecuted: cleanupTasks.length,
             dryRun: options.dryRun
-        };
+        }
     } catch (error) {
         throw persoError("CLEANUP_ERROR", "Erreur lors du nettoyage des données liées", {
             original: error.message
-        });
+        })
     }
 }
 
@@ -336,10 +349,10 @@ async function cleanupRelatedData(userId, options = { dryRun: false }) {
  * Suppression sécurisée d'utilisateur
  */
 async function deleteUser(userId, deletionContext = {}) {
-    const startTime = Date.now();
+    const startTime = Date.now()
     
     try {
-        assertValidId(userId, "userId");
+        assertValidId(userId, "userId")
 
         const {
             requestingUser,
@@ -348,42 +361,42 @@ async function deleteUser(userId, deletionContext = {}) {
             passwordConfirmation = null,
             ipAddress = 'unknown',
             forceDelete = false
-        } = deletionContext;
+        } = deletionContext
 
-        const userToDelete = await UserSchema.findById(userId);
+        const userToDelete = await UserSchema.findById(userId)
         if (!userToDelete) {
             throw persoError("NOT_FOUND", "Utilisateur introuvable", { 
                 fields: { userId: "Cet utilisateur n'existe pas" }
-            });
+            })
         }
 
-        const permissionErrors = validateDeletionPermissions(requestingUser, userToDelete, type);
+        const permissionErrors = validateDeletionPermissions(requestingUser, userToDelete, type)
         if (permissionErrors.length > 0) {
             throw persoError("PERMISSION_DENIED", "Permissions insuffisantes", {
                 fields: { permissions: permissionErrors.join(', ') }
-            });
+            })
         }
 
         if (type === DELETION_TYPES.SELF_DELETE && DELETION_CONFIG.REQUIRE_PASSWORD_CONFIRMATION) {
             if (!passwordConfirmation) {
                 throw persoError("VALIDATION_ERROR", "Confirmation par mot de passe requise", {
                     fields: { password: "Veuillez confirmer votre mot de passe" }
-                });
+                })
             }
 
-            const isPasswordValid = await bcrypt.compare(passwordConfirmation, userToDelete.password);
+            const isPasswordValid = await bcrypt.compare(passwordConfirmation, userToDelete.password)
             if (!isPasswordValid) {
-                console.error(`[SECURITY] Invalid password for user deletion: ${userToDelete.email} from IP: ${ipAddress}`);
+                console.error(`[SECURITY] Invalid password for user deletion: ${userToDelete.email} from IP: ${ipAddress}`)
                 throw persoError("INVALID_CREDENTIALS", "Mot de passe incorrect", {
                     fields: { password: "Mot de passe incorrect" }
-                });
+                })
             }
         }
 
         if (userToDelete.isDeleted && !forceDelete) {
             throw persoError("ALREADY_DELETED", "Utilisateur déjà supprimé", {
                 fields: { status: "Cet utilisateur est déjà marqué pour suppression" }
-            });
+            })
         }
 
         const archiveData = await archiveUserData(userToDelete, {
@@ -391,9 +404,9 @@ async function deleteUser(userId, deletionContext = {}) {
             type,
             reason,
             ipAddress
-        });
+        })
 
-        let result;
+        let result
 
         if (DELETION_CONFIG.USE_SOFT_DELETE && !forceDelete) {
             result = await UserSchema.findByIdAndUpdate(
@@ -411,44 +424,62 @@ async function deleteUser(userId, deletionContext = {}) {
                 { new: true}
             )
 
-        } else {
+        } 
+        else {
             await cleanupRelatedData(userId);
-            result = await UserSchema.findByIdAndDelete(userId);
+            result = await UserSchema.findByIdAndDelete(userId)
         }
-        console.log(`[SECURITY] User deletion: ${userToDelete.email} by ${requestingUser?.email || 'system'} (${type}) from IP: ${ipAddress} in ${Date.now() - startTime}ms`);
+        console.log(`[SECURITY] User deletion: ${userToDelete.email} by ${requestingUser?.email || 'system'} (${type}) from IP: ${ipAddress} in ${Date.now() - startTime}ms`)
+
+        let deletionType
+        if (DELETION_CONFIG.USE_SOFT_DELETE && !forceDelete) {
+            deletionType = 'soft'
+        } 
+        else {
+            deletionType = 'hard'
+        }
 
         return {
             success: true,
-            deletionType: DELETION_CONFIG.USE_SOFT_DELETE && !forceDelete ? 'soft' : 'hard',
+            deletionType,
             user: result,
             archiveId: archiveData.archiveId,
             dataHash: archiveData.dataHash
-        };
+        }
 
-    } catch (err) {
+    } 
+    catch (err) {
         console.error(`[SECURITY ERROR] User deletion failed: ${err.message} for userId: ${userId} by: ${deletionContext.requestingUser?.email || 'unknown'} from IP: ${deletionContext.ipAddress || 'unknown'}`);
 
-        if (err.type) throw err;
+        if (err.type) throw err
+
+        let originalMessage
+        if (process.env.NODE_ENV === 'development') {
+            originalMessage = err.message
+        } 
+        else {
+            originalMessage = 'Erreur interne'
+        }
         throw persoError("DB_ERROR", "Erreur lors de la suppression", { 
-            original: process.env.NODE_ENV === 'development' ? err.message : 'Erreur interne'
-        });
+            original: originalMessage
+        })
     }
 }
 
 /**
- * Récupération d'un utilisateur supprimé (soft delete uniquement)
+ * Récupération d'un utilisateur supprimé
  */
 async function restoreUser(userId, requestingUser) {
     try {
-        assertValidId(userId, "userId");
+        assertValidId(userId, "userId")
 
         if (!requestingUser || !['admin'].includes(requestingUser.role)) {
-            throw persoError("PERMISSION_DENIED", "Permissions administrateur requises");
+            throw persoError("PERMISSION_DENIED", "Permissions administrateur requises")
         }
 
         const user = await UserSchema.findById(userId);
         if (!user || !user.deletedAt) {
-            throw persoError("NOT_FOUND", "Utilisateur supprimé introuvable");
+            throw persoError("NOT_FOUND", "Utilisateur supprimé introuvable")
         }
 
         const restoredUser = await UserSchema.findByIdAndUpdate(userId, {
@@ -460,16 +491,17 @@ async function restoreUser(userId, requestingUser) {
             },
             $set: {isDeleted: false}
         }, 
-        { new: true });
+        { new: true })
 
-        console.log(`[SECURITY] User restored: ${restoredUser.email} by ${requestingUser.email}`);
+        console.log(`[SECURITY] User restored: ${restoredUser.email} by ${requestingUser.email}`)
 
         return restoredUser;
-    } catch (err) {
-        if (err.type) throw err;
+    } 
+    catch (err) {
+        if (err.type) throw err
         throw persoError("DB_ERROR", "Erreur lors de la restauration", { 
             original: err.message 
-        });
+        })
     }
 }
 
@@ -533,7 +565,9 @@ async function updateUserProfile(userId, updates) {
             throw persoError("DUPLICATE", `${dupField} déjà utilisé`, { fields: { [dupField]: 'déjà utilisé' } })
         }
 
-        if (err && err.type && err.message) throw err
+        if (err && err.type && err.message) {
+            throw err
+        }
 
         throw persoError("DB_ERROR", "Erreur de mise à jour", { original: err.message })
     }
@@ -581,7 +615,9 @@ async function changeUserPassword(userId, currentPassword, newPassword) {
         return user
     }
     catch (err) {
-        if (err && err.type && err.message) throw err
+        if (err && err.type && err.message) {
+            throw err
+        }
 
         if (err.name === "ValidationError") {
             const fields = {}
@@ -625,14 +661,25 @@ function toAvatarUrl(user) {
       user?.photo ||
       user?.profileImage
   
-    if (!raw) return null
+    if (!raw) {
+        return null
+    }
   
     let f = String(raw).replace(/\\/g, "/")
     const base = process.env.BASE_URL || "http://localhost:3000"
   
-    if (/^https?:\/\//i.test(f)) return f
-    if (f.startsWith("/uploads/")) return `${base}${f}`
-    if (f.startsWith("uploads/"))  return `${base}/${f}`
+    if (/^https?:\/\//i.test(f)) {
+        return f
+    }
+
+    if (f.startsWith("/uploads/")) {
+        return `${base}${f}`
+    }
+
+    if (f.startsWith("uploads/")) {
+        return `${base}/${f}`
+    }
+
     return `${base}/uploads/photos/${f}`
 }
   
@@ -668,7 +715,10 @@ async function getUserById(userId) {
 
 async function searchUsersByEmail(q = "", limit = 10) {
     const term = String(q || "").trim()
-    if (!term) return []
+    if (!term) {
+        return []
+    }
+
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(escaped, 'i')
     const docs = await UserSchema.find({ email: re, isDeleted: false })

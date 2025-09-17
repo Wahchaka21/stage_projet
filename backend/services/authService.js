@@ -56,9 +56,17 @@ async function login({ email, password }) {
     const attempts = (user.loginAttempts || 0) + 1
     const lock = attempts >= MAX_LOGIN_ATTEMPTS
 
+    let nextLoginAttempts
+    if (lock) {
+      nextLoginAttempts = 0
+    } 
+    else {
+      nextLoginAttempts = attempts
+    }
+
     await User.updateOne(
       { _id: user._id },
-      { $set: { loginAttempts: lock ? 0 : attempts, accountLocked: lock } }
+      { $set: { loginAttempts: nextLoginAttempts, accountLocked: lock } }
     )
     throw persoError('AUTH_ERROR', 'Information invalide')
   }
@@ -75,7 +83,9 @@ async function login({ email, password }) {
 
 async function getUserForToken(userId) {
   const u = await User.findById(userId).select("_id role isDeleted tokenVersion")
-  if (!u || u.isDeleted) return null
+  if (!u || u.isDeleted) {
+    return null
+  }
   return u
 }
 

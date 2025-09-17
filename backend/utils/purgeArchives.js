@@ -9,7 +9,7 @@ async function purgeExpiredUserDeletionArchives() {
 }
 
 function startArchivePurgeJob() {
-  // toutes les 12h (ajuste si tu veux)
+  // toutes les 12h
   const TWELVE_HOURS = 12 * 60 * 60 * 1000
   setInterval(() => {
     purgeExpiredUserDeletionArchives().catch(err => {

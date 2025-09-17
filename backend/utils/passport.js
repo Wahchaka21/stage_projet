@@ -25,7 +25,7 @@ passport.use(new JwtStrategy(options, async (payload, done) => {
 
     if (!user) return done(null, false)
 
-    return done(null, { ...user, iat: payload.iat });
+    return done(null, { ...user, iat: payload.iat })
   }
   catch (err) {
     return done(err, false)

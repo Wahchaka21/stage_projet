@@ -20,7 +20,19 @@ async function handleUpdateUser(req, res) {
   }
   catch (err) {
     const type = err.type || 'INTERNAL'
-    const status = type === 'VALIDATION_ERROR' ? 400 : (type === 'FORBIDDEN_UPDATE' ? 403 : (type === 'NOT_FOUND' ? 404 : 500))
+    let status
+    if (type === 'VALIDATION_ERROR') {
+      status = 400
+    } 
+    else if (type === 'FORBIDDEN_UPDATE') {
+      status = 403
+    } 
+    else if (type === 'NOT_FOUND') {
+      status = 404
+    } 
+    else {
+      status = 500
+    }
     res.status(status).json({ error: err.message, fields: err.fields || {} })
   }
 }
@@ -36,7 +48,19 @@ async function handleDeleteUser(req, res) {
   }
   catch (err) {
     const type = err.type || 'INTERNAL'
-    const status = type === 'VALIDATION_ERROR' ? 400 : (type === 'NOT_FOUND' ? 404 : (type === 'LAST_ADMIN' ? 409 : 500))
+    let status
+    if (type === 'VALIDATION_ERROR') {
+      status = 400
+    } 
+    else if (type === 'NOT_FOUND') {
+      status = 404
+    } 
+    else if (type === 'LAST_ADMIN') {
+      status = 409
+    } 
+    else {
+      status = 500
+    }
     res.status(status).json({ error: err.message, fields: err.fields || {} })
   }
 }
@@ -50,7 +74,22 @@ async function handleChangeUserRole(req, res) {
   }
   catch (err) {
     const type = err.type || 'INTERNAL'
-    const status = type === 'VALIDATION_ERROR' ? 400 : (type === 'INVALID_ROLE' ? 400 : (type === 'NOT_FOUND' ? 404 : (type === 'LAST_ADMIN' ? 409 : 500)))
+    let status
+    if (type === 'VALIDATION_ERROR') {
+      status = 400
+    } 
+    else if (type === 'INVALID_ROLE') {
+      status = 400
+    } 
+    else if (type === 'NOT_FOUND') {
+      status = 404
+    } 
+    else if (type === 'LAST_ADMIN') {
+      status = 409
+    } 
+    else {
+      status = 500
+    }
     res.status(status).json({ error: err.message, fields: err.fields || {} })
   }
 }
