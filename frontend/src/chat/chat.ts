@@ -1,14 +1,15 @@
-// src/chat/chat.ts
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core'
-import { CommonModule } from '@angular/common'
-import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, RouterLink } from '@angular/router'
-import { ChatService, ChatMessage } from './chat.service'
-import { Subject, takeUntil } from 'rxjs'
-// (optionnel) pour récupérer mon id ou le nom du peer :
-import { HttpClient } from '@angular/common/http'
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { ChatService, ChatMessage } from './chat.service';
 
-type UiMessage = { me: boolean; text: string; at: string }
+type UiMessage = {
+  me: boolean
+  text: string
+  at: string
+}
 
 @Component({
   selector: 'app-chat',
@@ -18,81 +19,143 @@ type UiMessage = { me: boolean; text: string; at: string }
 })
 export class Chat implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute)
-  private chatService = inject(ChatService)
-  private http = inject(HttpClient) // optionnel, utile pour /auth/me et /users/:id
+  private http = inject(HttpClient)
+  private chat = inject(ChatService)
 
-  peerId = ''
-  input = signal('')
+  //l'id de la personne à qui on parle
+  peerId: string = ""
+  //ce que tu tapes dans l’input
+  input = signal("")
+  //messages affichés
   messages: UiMessage[] = []
+  //ton propre id utilisateur
   myUserId = signal<string | null>(null)
+  //nom affiché du peer (ex: “Coach”)
+  peerName = signal<string>("")
 
-  // 🔹 pour le titre du header (facultatif mais pratique)
-  peerName = signal<string>('')
-
-  private destroy$ = new Subject<void>()
+  //on garde la référence à l’abonnement pour pouvoir unsubscribe
+  private messageSub: any = null
 
   ngOnInit(): void {
-    // (optionnel) connaître mon propre id pour que "Moi/Lui" soit correct
-    this.http.get<any>('http://localhost:3000/auth/me').subscribe({
-      next: u => this.myUserId.set(u?._id || null),
-      error: () => { }
+    //Récupérer mon propre userId (pour tagger “moi” / “lui”)
+    this.http.get<any>("http://localhost:3000/auth/me").subscribe({
+      next: (u) => {
+        if (u && u._id) {
+          this.myUserId.set(String(u._id))
+        } else {
+          this.myUserId.set(null)
+        }
+      },
+      error: () => {
+        this.myUserId.set(null)
+      }
     })
 
-    this.peerId = String(this.route.snapshot.paramMap.get('peerId') || '')
+    //Lire l’ID du peer dans l’URL
+    //si pas de peerId, on arrête
+    const fromUrl = this.route.snapshot.paramMap.get("peerId")
+    if (typeof fromUrl === "string") {
+      this.peerId = fromUrl
+    }
+    else {
+      this.peerId = ""
+    }
+
     if (!this.peerId) {
-      console.warn('[chat] pas de peerId dans l’URL, je n’ouvre pas la socket')
+      console.warn("[chat] pas de peerId dans l'URL, j'arrête ici")
       return
     }
 
-    // (optionnel) récupérer le nom du peer pour le header
+    //Afficher un nom sympa pour le header (en option)
     this.http.get<any>(`http://localhost:3000/users/${this.peerId}`).subscribe({
-      next: u => this.peerName.set(u?.name || u?.nickname || u?.email || 'Coach'),
-      error: () => this.peerName.set('Coach')
+      next: (u) => {
+        if (u && (u.name || u.nickname || u.email)) {
+          this.peerName.set(u.name || u.nickname || u.email)
+        }
+        else {
+          this.peerName.set("Coach")
+        }
+      },
+      error: () => {
+        this.peerName.set("Coach")
+      }
     })
 
-    const ok = this.chatService.connect(this.peerId)
-    if (!ok) {
-      console.warn('[chat] connexion socket non ouverte (token manquant ?)')
+    const opened = this.chat.connect(this.peerId)
+    if (!opened) {
+      console.warn("[chat] socket non ouverte (token manquant ?)")
       return
     }
 
-    this.chatService
-      .stream()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((msg: ChatMessage) => {
-        const iAmSender = this.myUserId() && msg.userId === this.myUserId()
-        this.messages.push({
-          me: !!iAmSender,
-          text: msg.text,
-          at: new Date(msg.at).toLocaleTimeString(),
-        })
-        queueMicrotask(this.scrollToBottom)
+    //S’abonner aux messages entrants
+    this.messageSub = this.chat.stream().subscribe((msg: ChatMessage) => {
+      const myId = this.myUserId()
+      let isMe = false
+
+      if (myId && msg && msg.userId) {
+        if (String(msg.userId) === String(myId)) {
+          isMe = true
+        }
+      }
+
+      let when: Date
+      if (msg && msg.at) {
+        when = new Date(msg.at)
+      }
+      else {
+        when = new Date()
+      }
+
+      const at = when.toLocaleTimeString()
+
+      this.messages.push({
+        me: isMe,
+        text: msg?.text || "",
+        at,
       })
+
+      //scroll en bas après ajout
+      queueMicrotask(() => this.scrollToBottom())
+    })
   }
 
   send(): void {
+    //lire le texte, trim et valider
     const text = this.input().trim()
     if (!text) return
 
-    const sent = this.chatService.send(text)
-    if (!sent) return
+    //envoyer au back via socket
+    const ok = this.chat.send(text)
+    if (!ok) return
 
-    this.messages.push({ me: true, text, at: new Date().toLocaleTimeString() })
-    this.input.set('')
-    queueMicrotask(this.scrollToBottom)
+    //afficher immédiatement côté UI
+    this.messages.push({
+      me: true,
+      text,
+      at: new Date().toLocaleTimeString(),
+    })
+
+    //vider l’input + scroll en bas
+    this.input.set("")
+    queueMicrotask(() => this.scrollToBottom())
   }
 
-  private scrollToBottom() {
-    const el = document.getElementById('messages')
-    if (el) el.scrollTop = el.scrollHeight
+  private scrollToBottom(): void {
+    const el = document.getElementById("messages")
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
   }
 
-  // 🔹 requis par le template (`trackBy: trackByIdx`)
-  trackByIdx = (i: number, _m: UiMessage) => i
+  //optionnel : si ton *ngFor a trackBy
+  trackByIdx(i: number, _m: UiMessage) { return i }
 
   ngOnDestroy(): void {
-    this.destroy$.next()
-    this.destroy$.complete()
-    this.chatService.disconnect()
+    //se désabonner proprement
+    if (this.messageSub && typeof this.messageSub.unsubscribe === "function") {
+      this.messageSub.unsubscribe()
+    }
+    //fermer la socket
+    this.chat.disconnect()
   }
 }
