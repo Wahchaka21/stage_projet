@@ -1,5 +1,8 @@
 const conversation = require("../schemas/Conversation")
 const message = require("../schemas/Message")
+const persoError = require("../utils/error")
+const { isValideObjectId } = require("../utils/validator")
+const { getOrCreateConversation } = require("../utils/conversation")
 
 async function listMessages(conversationId, options = {}) {
     const result = []
@@ -132,35 +135,6 @@ async function saveMessage(doc) {
     }
 }
 
-function orderPair(a, b) {
-    const A = String(a)
-    const B = String(b)
-
-    if (A < B) {
-        return {
-            left: A, right: B
-        }
-    } 
-    else {
-        return {
-            left: B, right: A
-        }
-    }
-}
-
-async function getOrCreateConversation(userIdA, userIdB) {
-    const pair = orderPair(userIdA, userIdB)
-
-    let conv = await conversation.findOne({ userA: pair.left, userB: pair.right })
-    if (!conv) {
-        conv = await conversation.create({
-            userA: pair.left,
-            userB: pair.right,
-            lastMessageAt: new Date()
-        })
-    }
-    return conv
-}
 
 async function listMessagesBetween(meId, peerId, limit, beforeDate) {
     const conv = await getOrCreateConversation(meId, peerId)
@@ -222,9 +196,45 @@ async function listMessagesBetween(meId, peerId, limit, beforeDate) {
     return { conversationId: String(conv._id), messages: result }
 }
 
+async function deleteMessage(messageId) {
+    try {
+        if(!isValideObjectId(messageId)) {
+            throw persoError("INVALID_ID", "ID de message invalide", { fields: { messageId } })
+        }
+
+        let filtre
+        if(isAdmin === true) {
+            filtre = { _id: messageId }
+        }
+        else {
+            filtre = { _id: messageId, userId}
+        }
+
+        const cible = await message.findOne(filtre).lean()
+        if(!cible) {
+            throw persoError("NOT_FOUND", "le message n'a pas été trouvé", { fields: { messageId } })
+        }
+
+        const deleted = await message.deleteOne({ _id: messageId })
+        if(!deleted || deleted.deletedCount !== 1) {
+            throw persoError("DB_ERROR", "La suppression n'a pas abouti")
+        }
+        
+        return { _id: String(messageId), conversationId: String(cible.conversationId) }
+    }
+    catch (err) {
+        if (err && err.code) {
+            throw err
+        }
+
+        throw persoError("DB_ERROR", "Erreur lors de la supression du message")
+    }
+}
+
 module.exports = {
     listMessages,
     saveMessage,
     getOrCreateConversation,
-    listMessagesBetween
+    listMessagesBetween,
+    deleteMessage
 }

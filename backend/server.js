@@ -70,4 +70,6 @@ const allowed = (process.env.CORS_ORIGINS || "http://localhost:4200")
   .split(",")
   .map(s => s.trim())
 
-initSockets(server, { allowedOrigins: allowed })
+const io = initSockets(server, { allowedOrigins: allowed })
+
+app.set("io", io)

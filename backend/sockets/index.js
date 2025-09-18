@@ -1,4 +1,3 @@
-// sockets/index.js
 const { Server } = require('socket.io')
 const { authSocket } = require('../middlewares/authSocket')
 const { chatHandlers } = require('../handlers/chatHandler')

@@ -13,7 +13,7 @@ const conversationSchema = new mongoose.Schema({
     },
     lastMessageAt: {
         type: Date,
-        default: Date.now()
+        default: Date.now
     },
 }, {
     timestamps: true

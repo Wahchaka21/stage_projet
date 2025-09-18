@@ -7,5 +7,6 @@ const router = express.Router()
 
 router.get("/:conversationId/history", isAuth, getHistory)
 router.get("/:peerId/messages", isAuth, chatController.getMessages)
+router.delete("/delete/:id", isAuth, chatController.handleDeleteMessage)
 
 module.exports = router

@@ -64,7 +64,60 @@ async function getMessages(req, res) {
     }
 }
 
+async function handleDeleteMessage(req, res) {
+    try {
+        const messageId = req.params.id
+
+        let userId
+        if(req.user && req.user._id) {
+            userId = String(req.user._id)
+        }
+        else {
+            return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Connexion requise"}})
+        }
+
+        let isAdmin
+        if(req.user && req.user.role === "admin") {
+            isAdmin = true
+        }
+        else {
+            isAdmin = false
+        }
+
+        const result = await convoService.deleteMessage(messageId, userId, isAdmin)
+        if (result && result.conversationId) {
+            const room = "conv:" + result.conversationId
+            const io = req.app && req.app.get("io")
+            if (io) {
+                io.to(room).emit("message-deleted", { _id: messageId })
+            }
+        }
+
+        res.status(200).json({
+            message: "Message supprimé !",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleDeleteMessage] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     getHistory,
-    getMessages
+    getMessages,
+    handleDeleteMessage
 }
