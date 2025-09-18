@@ -30,63 +30,39 @@ export class Login {
     })
   }
 
-  get f() { return this.form.controls; }
+  get f() { return this.form.controls }
 
   onSubmit(): void {
-    // reset des messages serveur à chaque tentative
     this.serverError.set(null)
     this.serverOk.set(null)
 
-    // si le form est invalide -> on montre les erreurs et on stoppe
     if (this.form.invalid) {
       this.form.markAllAsTouched()
       return
     }
 
-    // extraire les valeurs et les lit
     const raw = this.form.value
     const email = raw.email as string
     const password = raw.password as string
     const remember = Boolean(raw.remember)
 
-    // passe waiting à true
     this.waiting.set(true)
 
-    // appel API
-    this.auth.login({ email, password }).subscribe({
-      next: (res) => {
-        // message succès
-        this.serverOk.set('Connexion réussie !')
-
-        // choisir l'endroit où stocker le token
-        let storage: Storage
-        if (remember === true) {
-          storage = localStorage
-        }
-        else {
-          storage = sessionStorage
-        }
-
-        // stocker le token
-        storage.setItem('token', res.token)
-
+    this.auth.login({ email, password, remember }).subscribe({
+      next: () => {
+        this.serverOk.set('Connexion reussie !')
         this.waiting.set(false)
-
-        // redirection
         this.router.navigateByUrl('/accueil')
       },
       error: (err) => {
-        // construire un message d’erreur lisible
         let msg = 'Email ou mot de passe incorrect'
         if (err && err.error && err.error.error) {
           msg = err.error.error
         }
         this.serverError.set(msg)
-
         this.waiting.set(false)
       },
       complete: () => {
-        // spinner OFF
         this.waiting.set(false)
       },
     })

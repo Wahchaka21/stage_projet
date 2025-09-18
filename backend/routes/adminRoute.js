@@ -14,11 +14,8 @@ router.param('userId', (req, res, next, val) => {
 })
 
 router.get('/users', isAuth, adminController.handleGetAllUser)
-
 router.patch('/users/:userId', isAuth, adminController.handleUpdateUser)
-
 router.patch('/users/:userId/role', isAuth, adminController.handleChangeUserRole)
-
 router.delete('/users/:userId', isAuth, adminController.handleDeleteUser)
 
 module.exports = router

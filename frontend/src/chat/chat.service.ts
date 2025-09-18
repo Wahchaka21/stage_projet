@@ -1,6 +1,6 @@
 // src/chat/chat.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http'; // (pas obligatoire ici, mais utile si tu veux plus tard)
+import { HttpClient } from '@angular/common/http';
 import { io, Socket } from 'socket.io-client';
 import { Subject, Observable } from 'rxjs';
 import { LoginService } from '../login/login.service';
@@ -61,6 +61,7 @@ export class ChatService {
         this.socket = io(this.API_URL, {
             transports: ['websocket'],
             withCredentials: true,
+            auth: { token },
             extraHeaders: { Authorization: `Bearer ${token}` },
             reconnection: true,
             reconnectionAttempts: 5,
@@ -143,5 +144,58 @@ export class ChatService {
             this.socket = null
         }
         this.peerId = null
+    }
+
+    /*  Récupère l’historique avec un pair donné (peerId).
+        Le back répond : { conversationId, messages: ChatMessage[] }
+        Paramètres :
+          - limit : nb de messages max
+          - before : ISO date ou ObjectId pour paginer vers le passé
+     */
+    getHistoryWithPeer(peerId: string, limit: number = 50, before?: string) {
+        //construire l’URL
+        let url = `${this.API_URL}/chat/${peerId}/messages?limit=${limit}`
+
+        if (before && typeof before === "string") {
+            url = `${url}&before=${encodeURIComponent(before)}`
+        }
+
+        //préparer les headers (token)
+        const token = this.auth.accessToken()
+        let headers: Record<string, string> = {}
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`
+        }
+
+        //lancer la requête
+        return this._http.get<{ conversationId: string, messages: ChatMessage[] }>(url, {
+            withCredentials: true,
+            headers
+        })
+    }
+
+    /*  Récupère l’historique par id de conversation (optionnel),
+        Le back répond : { items: ChatMessage[] }
+     */
+    getHistoryByConversation(conversationId: string, limit: number = 50, before?: string) {
+        // construire l’URL
+        let url = `${this.API_URL}/chat/${conversationId}/history?limit=${limit}`
+
+        if (before && typeof before === "string") {
+            url = `${url}&before=${encodeURIComponent(before)}`
+        }
+
+        //préparer les headers (token)
+        const token = this.auth.accessToken()
+        let headers: Record<string, string> = {}
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`
+        }
+
+        //lancer la requête
+        return this._http.get<{ items: ChatMessage[] }>(url, {
+            withCredentials: true,
+            headers
+        })
     }
 }

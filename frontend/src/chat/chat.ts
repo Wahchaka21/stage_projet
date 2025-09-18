@@ -67,7 +67,7 @@ export class Chat implements OnInit, OnDestroy {
     }
 
     //Afficher un nom sympa pour le header (en option)
-    this.http.get<any>(`http://localhost:3000/users/${this.peerId}`).subscribe({
+    this.http.get<any>(`http://localhost:3000/user/${this.peerId}`).subscribe({
       next: (u) => {
         if (u && (u.name || u.nickname || u.email)) {
           this.peerName.set(u.name || u.nickname || u.email)
@@ -81,59 +81,133 @@ export class Chat implements OnInit, OnDestroy {
       }
     })
 
-    const opened = this.chat.connect(this.peerId)
-    if (!opened) {
-      console.warn("[chat] socket non ouverte (token manquant ?)")
-      return
-    }
+    //Charger l’historique AVANT d’ouvrir la socket
+    this.chat.getHistoryWithPeer(this.peerId, 50).subscribe({
+      next: (res) => {
+        // sécuriser
+        if (res && Array.isArray(res.messages)) {
+          const myId = this.myUserId()
 
-    //S’abonner aux messages entrants
-    this.messageSub = this.chat.stream().subscribe((msg: ChatMessage) => {
-      const myId = this.myUserId()
-      let isMe = false
+          for (const msg of res.messages) {
+            let isMe = false
+            if (myId && msg && msg.userId) {
+              if (String(msg.userId) === String(myId)) {
+                isMe = true
+              }
+            }
 
-      if (myId && msg && msg.userId) {
-        if (String(msg.userId) === String(myId)) {
-          isMe = true
+            let when: Date
+            if (msg && msg.at) {
+              when = new Date(msg.at)
+            }
+            else {
+              when = new Date()
+            }
+
+            const at = when.toLocaleTimeString()
+
+            this.messages.push({
+              me: isMe,
+              text: msg?.text || "",
+              at,
+            })
+          }
+
+          //scroller après rendu
+          queueMicrotask(() => this.scrollToBottom())
         }
+
+        //ensuite ouvrir la socket
+        const opened = this.chat.connect(this.peerId)
+        if (!opened) {
+          console.warn("[chat] socket non ouverte (token manquant ?)")
+          return
+        }
+
+        //S’abonner aux messages temps réel
+        this.messageSub = this.chat.stream().subscribe((msg: ChatMessage) => {
+          const myId = this.myUserId()
+          let isMe = false
+
+          if (myId && msg && msg.userId) {
+            if (String(msg.userId) === String(myId)) {
+              isMe = true
+            }
+          }
+
+          let when: Date
+          if (msg && msg.at) {
+            when = new Date(msg.at)
+          }
+          else {
+            when = new Date()
+          }
+
+          const at = when.toLocaleTimeString()
+
+          this.messages.push({
+            me: isMe,
+            text: msg?.text || "",
+            at,
+          })
+
+          queueMicrotask(() => this.scrollToBottom())
+        })
+      },
+      error: () => {
+        console.warn("[chat] impossible de charger l'historique, j'ouvre quand même la socket")
+
+        // même si l’historique échoue, on ouvre la socket pour le temps réel
+        const opened = this.chat.connect(this.peerId)
+        if (!opened) {
+          console.warn("[chat] socket non ouverte (token manquant ?)")
+          return
+        }
+
+        this.messageSub = this.chat.stream().subscribe((msg: ChatMessage) => {
+          const myId = this.myUserId()
+          let isMe = false
+
+          if (myId && msg && msg.userId) {
+            if (String(msg.userId) === String(myId)) {
+              isMe = true
+            }
+          }
+
+          let when: Date
+          if (msg && msg.at) {
+            when = new Date(msg.at)
+          }
+          else {
+            when = new Date()
+          }
+
+          const at = when.toLocaleTimeString()
+
+          this.messages.push({
+            me: isMe,
+            text: msg?.text || "",
+            at,
+          })
+
+          queueMicrotask(() => this.scrollToBottom())
+        })
       }
-
-      let when: Date
-      if (msg && msg.at) {
-        when = new Date(msg.at)
-      }
-      else {
-        when = new Date()
-      }
-
-      const at = when.toLocaleTimeString()
-
-      this.messages.push({
-        me: isMe,
-        text: msg?.text || "",
-        at,
-      })
-
-      //scroll en bas après ajout
-      queueMicrotask(() => this.scrollToBottom())
     })
   }
 
   send(): void {
     //lire le texte, trim et valider
     const text = this.input().trim()
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     //envoyer au back via socket
     const ok = this.chat.send(text)
-    if (!ok) return
-
-    //afficher immédiatement côté UI
-    this.messages.push({
-      me: true,
-      text,
-      at: new Date().toLocaleTimeString(),
-    })
+    if (!ok) {
+      return
+    }
 
     //vider l’input + scroll en bas
     this.input.set("")
@@ -147,7 +221,6 @@ export class Chat implements OnInit, OnDestroy {
     }
   }
 
-  //optionnel : si ton *ngFor a trackBy
   trackByIdx(i: number, _m: UiMessage) { return i }
 
   ngOnDestroy(): void {

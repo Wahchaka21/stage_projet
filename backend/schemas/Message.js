@@ -1,8 +1,8 @@
 const mongoose = require("mongoose")
 
 const messageSchema = new mongoose.Schema({
-    ConversationId: {
-        type: mongoose.Schema.Types.ObjectId, 
+    conversationId: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Conversation",
         required: true
     },
@@ -19,12 +19,12 @@ const messageSchema = new mongoose.Schema({
     },
     at: {
         type: Date,
-        default: Date.now()
+        default: Date.now
     }
 }, {
     timestamps: true
 })
 
-messageSchema.index({ ConversationId: 1, at: -1 })
+messageSchema.index({ conversationId: 1, at: -1 })
 
 module.exports = mongoose.model("Message", messageSchema)
