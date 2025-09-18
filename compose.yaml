@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    container_name: stage_backend
+    env_file:
+      - backend/.env
+    environment:
+      MONGO_URL: mongodb://host.docker.internal:27017/projet_stage
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    container_name: stage_frontend
+    environment:
+      PORT: 4200
+    depends_on:
+      - backend
+    ports:
+      - "4200:4200"
