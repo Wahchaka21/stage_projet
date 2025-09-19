@@ -313,15 +313,24 @@ export class Chat implements OnInit, OnDestroy {
 
   async copierMessageSelectionne(): Promise<void> {
     const id = this.selectedMessageId
-    if (!id) { return }
+    if (!id) {
+      return
+    }
     const item = this.messages.find(m => m.id === id)
     const texte = item?.text ?? ""
-    try { await navigator.clipboard.writeText(texte) } catch { }
+    try {
+      await navigator.clipboard.writeText(texte)
+    }
+    catch (err) {
+      console.error(err)
+    }
     this.closeActionModal()
   }
 
   ouvrirEditionMessage(): void {
-    if (this.modalMessageIndex == null || !this.selectedMessageId) return
+    if (this.modalMessageIndex == null || !this.selectedMessageId) {
+      return
+    }
     const msg = this.messages[this.modalMessageIndex]
     this.brouillonEdition = msg?.text || ""
     this.editMessageId = this.selectedMessageId
@@ -338,7 +347,10 @@ export class Chat implements OnInit, OnDestroy {
   async validerEdition(): Promise<void> {
     const id = this.editMessageId
     const nouveau = (this.brouillonEdition || "").trim()
-    if (!id || !nouveau) { this.fermerEdition(); return }
+    if (!id || !nouveau) {
+      this.fermerEdition()
+      return
+    }
 
     const cible = this.messages.find(m => m.id === id)
     if (cible) {
@@ -346,5 +358,4 @@ export class Chat implements OnInit, OnDestroy {
     }
     this.fermerEdition()
   }
-
 }

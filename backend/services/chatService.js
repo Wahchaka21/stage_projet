@@ -230,6 +230,7 @@ async function deleteMessage(messageId, userId, isAdmin = false) {
         throw persoError("DB_ERROR", "Erreur lors de la supression du message")
     }
 }
+
 module.exports = {
     listMessages,
     saveMessage,
