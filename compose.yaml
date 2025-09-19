@@ -11,6 +11,9 @@ services:
       PORT: 3000
     ports:
       - "3000:3000"
+    volumes:
+      - ./backend:/workspace/backend
+      - backend_node_modules:/workspace/backend/node_modules
 
   frontend:
     build:
@@ -23,3 +26,10 @@ services:
       - backend
     ports:
       - "4200:4200"
+    volumes:
+      - ./frontend:/workspace/frontend
+      - frontend_node_modules:/workspace/frontend/node_modules
+
+volumes:
+  backend_node_modules:
+  frontend_node_modules:

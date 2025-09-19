@@ -196,7 +196,7 @@ async function listMessagesBetween(meId, peerId, limit, beforeDate) {
     return { conversationId: String(conv._id), messages: result }
 }
 
-async function deleteMessage(messageId) {
+async function deleteMessage(messageId, userId, isAdmin = false) {
     try {
         if(!isValideObjectId(messageId)) {
             throw persoError("INVALID_ID", "ID de message invalide", { fields: { messageId } })
@@ -207,15 +207,15 @@ async function deleteMessage(messageId) {
             filtre = { _id: messageId }
         }
         else {
-            filtre = { _id: messageId, userId}
+            filtre = { _id: messageId, userId: String(userId) }
         }
 
         const cible = await message.findOne(filtre).lean()
         if(!cible) {
-            throw persoError("NOT_FOUND", "le message n'a pas été trouvé", { fields: { messageId } })
+            throw persoError("NOT_FOUND", "le message n'a pas ete trouve", { fields: { messageId } })
         }
 
-        const deleted = await message.deleteOne({ _id: messageId })
+        const deleted = await message.deleteOne(filtre)
         if(!deleted || deleted.deletedCount !== 1) {
             throw persoError("DB_ERROR", "La suppression n'a pas abouti")
         }
@@ -230,7 +230,6 @@ async function deleteMessage(messageId) {
         throw persoError("DB_ERROR", "Erreur lors de la supression du message")
     }
 }
-
 module.exports = {
     listMessages,
     saveMessage,
@@ -238,3 +237,4 @@ module.exports = {
     listMessagesBetween,
     deleteMessage
 }
+

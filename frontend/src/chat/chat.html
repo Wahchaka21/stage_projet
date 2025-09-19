@@ -1,4 +1,4 @@
-<div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]">
+﻿<div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]" data-role="chat-root">
 
     <header class="sticky top-0 z-10 px-4 pt-4 pb-3 bg-gradient-to-b from-[#315f92] to-transparent">
         <div class="flex items-center justify-between text-white">
@@ -28,14 +28,17 @@
     <main class="-mt-2 rounded-t-3xl bg-white p-0">
         <div id="messages" class="h-[calc(100svh-220px)] overflow-y-auto px-3 py-4 sm:px-4">
 
-            <div *ngFor="let m of messages; trackBy: trackByIdx" class="mb-3" [class.text-right]="m.me">
+            <div *ngFor="let m of messages; index as i; trackBy: trackByIdx" class="mb-3" [class.text-right]="m.me">
                 <div class="text-[10px] text-gray-400 mb-0.5" [class.text-right]="m.me">
                     {{ m.at }}
                 </div>
 
-                <div class="inline-block max-w-[80%] rounded-2xl px-3 py-2 shadow-sm" [class.bg-[#315f92]]="m.me"
-                    [class.text-white]="m.me" [class.rounded-br-sm]="m.me" [class.bg-[#e9eef7]]="!m.me"
-                    [class.text-gray-900]="!m.me" [class.rounded-bl-sm]="!m.me">
+                <!-- bulle cliquable = ouvre la modale d’actions -->
+                <div class="relative inline-block max-w-[80%] rounded-2xl px-3 py-2 shadow-sm select-none pointer-events-auto"
+                    [class.bg-[#315f92]]="m.me" [class.text-white]="m.me" [class.rounded-br-sm]="m.me"
+                    [class.bg-[#e9eef7]]="!m.me" [class.text-gray-900]="!m.me" [class.rounded-bl-sm]="!m.me"
+                    (click)="openActionModal(i, m.id)">
+
                     <p class="text-[13px] leading-snug whitespace-pre-wrap break-words">
                         {{ m.text }}
                     </p>
@@ -45,6 +48,85 @@
             <div class="h-4"></div>
         </div>
     </main>
+
+    <!-- MODALE D’ACTIONS (Copier / Modifier / Supprimer / Annuler) -->
+    <div *ngIf="showActionModal" class="fixed inset-0 z-[100]">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="closeActionModal()"></div>
+
+        <!-- Carte -->
+        <div class="relative top-1/2 -translate-y-1/2 mx-auto w-[92%] max-w-sm">
+            <div class="rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+                <div class="p-4">
+                    <h3 class="text-base font-semibold text-gray-900">Action sur le message</h3>
+                    <p class="mt-1 text-sm text-gray-600">
+                        Choisis une action pour ce message.
+                    </p>
+                </div>
+
+                <div class="border-t border-gray-100"></div>
+
+                <div class="p-2 flex flex-col">
+                    <button type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
+                        (click)="copierMessageSelectionne()">
+                        Copier le texte
+                    </button>
+
+                    <button type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
+                        (click)="ouvrirEditionMessage()">
+                        Modifier le message
+                    </button>
+
+                    <button type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
+                        (click)="confirmDelete()">
+                        Supprimer le message
+                    </button>
+
+                    <div class="border-t border-gray-100 my-2"></div>
+
+                    <button type="button"
+                        class="text-center px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 active:scale-[0.99]"
+                        (click)="closeActionModal()">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE D'ÉDITION (simple) -->
+    <div *ngIf="showEditModal" class="fixed inset-0 z-[110]">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="fermerEdition()"></div>
+
+        <div class="relative top-1/2 -translate-y-1/2 mx-auto w-[92%] max-w-sm">
+            <div class="rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+                <div class="p-4">
+                    <h3 class="text-base font-semibold text-gray-900">Modifier le message</h3>
+                    <textarea [(ngModel)]="brouillonEdition" name="edit"
+                        class="mt-3 w-full rounded-lg border border-gray-200 p-2 text-sm outline-none" rows="4"
+                        placeholder="Éditer le message..."></textarea>
+                </div>
+
+                <div class="border-t border-gray-100"></div>
+
+                <div class="p-3 flex gap-2">
+                    <button type="button"
+                        class="flex-1 rounded-xl bg-[#315f92] text-white text-sm px-4 py-2 active:scale-[0.98]"
+                        (click)="validerEdition()">
+                        Enregistrer
+                    </button>
+                    <button type="button"
+                        class="flex-1 rounded-xl bg-gray-100 text-gray-900 text-sm px-4 py-2 active:scale-[0.98]"
+                        (click)="fermerEdition()">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <form (ngSubmit)="send()" class="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 pb-4">
         <div class="mx-auto flex items-center gap-2 rounded-full bg-white shadow-lg border border-gray-100 px-3 py-2.5">
