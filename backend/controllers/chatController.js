@@ -166,9 +166,79 @@ async function handleModifyMessage(req, res) {
     }
 }
 
+async function handleUploadPhoto(req, res) {
+    try {
+        const file = req.file
+        const userId = req.user._id
+
+        if(!file) {
+            return res.status(400).json({ error: "Aucune photo n'a été reçue" })
+        }
+
+        const url = `http://localhost:3000/uploads/photos/${file.filename}`
+
+        const photo = await convoService.uploadPhoto({
+            userId,
+            name: file.originalname,
+            url,
+            size: file.size,
+            format: file.mimetype
+        })
+
+        res.status(201).json(photo)
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleUploadPhoto] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
+async function handleDeletePhoto(req, res) {
+    try {
+        const photoId = req.params.id
+        
+        const result = await convoService.deletePhoto(photoId)
+
+        res.status(200).json({
+            message: "photo supprimée",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleDeletePhoto] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     getHistory,
     getMessages,
     handleDeleteMessage,
-    handleModifyMessage
+    handleModifyMessage,
+    handleUploadPhoto,
+    handleDeletePhoto
 }

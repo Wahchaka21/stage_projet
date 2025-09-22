@@ -3,6 +3,9 @@ const message = require("../schemas/Message")
 const persoError = require("../utils/error")
 const { isValideObjectId } = require("../utils/validator")
 const { getOrCreateConversation } = require("../utils/conversation")
+const photoSchema = require("../schemas/photoSchema")
+const fs = require("fs")
+const path = require("path")
 
 async function listMessages(conversationId, options = {}) {
     const result = []
@@ -328,11 +331,71 @@ async function modifyMessage(messageId, userId, nouveauTexte) {
     }
 }
 
+async function uploadPhoto(photoData) {
+    try {
+        return await photoSchema.create(photoData)
+    }
+    catch (err) {
+        if (err.name === "ValidationError") {
+            const fields = {}
+            for (let key in err.errors) {
+                fields[key] = err.errors[key].message
+            }
+
+            throw persoError("VALIDATION_ERROR", "Erreur validation upload photo", { fields })
+        }
+
+        throw persoError("DB_ERROR", "erreur upload photo", { original: err.message })
+    }
+}
+
+async function deletePhoto(photoId) {
+    try {
+        if (!isValideObjectId(photoId)) {
+            throw persoError("INVALID_ID", "ID de message invalide", { fields: { photoId } })
+        }
+
+        const photo = await photoSchema.findById(photoId)
+        if(!photo){
+            throw persoError("NOT_FOUND", "La photo n'a pas été trouvé", { fields: { photoId }})
+        }
+
+        const filePath = path.join(
+            __dirname,
+            "..",
+            "uploads",
+            "photos",
+            path.basename(photo.url)
+        )
+
+        const deleted = await photoSchema.findByIdAndDelete(photoId)
+
+        if (deleted) {
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    console.warn("Impossible de supprimer le fichier :", filePath)
+                    console.warn("Raison :", err.message)
+                }
+            })
+        }
+
+        return deleted
+    }
+    catch (err) {
+        if (err?.type) {
+            throw err
+        }
+        throw persoError("DB_ERROR", "Erreur suppression de la photo", { original: err.message })
+    }
+}
+
 module.exports = {
     listMessages,
     saveMessage,
     getOrCreateConversation,
     listMessagesBetween,
     deleteMessage,
-    modifyMessage
+    modifyMessage,
+    uploadPhoto,
+    deletePhoto
 }
