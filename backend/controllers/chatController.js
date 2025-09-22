@@ -1,3 +1,4 @@
+const { text } = require("express")
 const convoService = require("../services/chatService")
 
 async function getHistory(req, res) {
@@ -116,8 +117,58 @@ async function handleDeleteMessage(req, res) {
     }
 }
 
+async function handleModifyMessage(req, res) {
+    try {
+        const messageId = req.params.messageId
+        const {nouveauTexte} = req.body
+
+        let userId
+        
+        if(req.user && req.user._id) {
+            userId = String(req.user._id)
+        }
+        else {
+            return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Connexion requise"}})
+        }
+
+        const result = await convoService.modifyMessage(messageId, userId, nouveauTexte)
+
+        if(result && result.conversationId && req.app && req.app.get("io")) {
+            const room = "conv:" + String(result.conversationId)
+            const io = req.app && req.app.get("io")
+            io.to(room).emit("message-modified", { 
+                _id: result._id,
+                text: result.text,
+                updatedAt: result.updatedAt
+            })
+        }
+
+        res.status(200).json({
+            message: "Message modifier !",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleModifyMessage] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     getHistory,
     getMessages,
-    handleDeleteMessage
+    handleDeleteMessage,
+    handleModifyMessage
 }

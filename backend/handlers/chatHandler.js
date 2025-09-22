@@ -52,7 +52,7 @@ async function chatHandlers(io, socket) {
 
             const conv = await chatService.getOrCreateConversation(me, peerId)
             const saved = await chatService.saveMessage({
-                ConversationId: conv._id,
+                conversationId: conv._id,
                 userId: me,
                 text: trimmed
             })
@@ -65,12 +65,12 @@ async function chatHandlers(io, socket) {
         }
     })
 
-    socket.on("deleted-message-notify", async ({ ConversationId, messageId }) => {
+    socket.on("deleted-message-notify", async ({ conversationId, messageId }) => {
         try {
-            if(!ConversationId) {
+            if(!conversationId) {
                 return
             }
-            const room = "conv:" + String(ConversationId)
+            const room = "conv:" + String(conversationId)
             io.to(room).emit("message-deleted", { _id: messageId })
         }
         catch (err) {

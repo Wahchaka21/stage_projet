@@ -33,12 +33,10 @@
                     {{ m.at }}
                 </div>
 
-                <!-- bulle cliquable = ouvre la modale d’actions -->
                 <div class="relative inline-block max-w-[80%] rounded-2xl px-3 py-2 shadow-sm select-none pointer-events-auto"
                     [class.bg-[#315f92]]="m.me" [class.text-white]="m.me" [class.rounded-br-sm]="m.me"
                     [class.bg-[#e9eef7]]="!m.me" [class.text-gray-900]="!m.me" [class.rounded-bl-sm]="!m.me"
                     (click)="openActionModal(i, m.id)">
-
                     <p class="text-[13px] leading-snug whitespace-pre-wrap break-words">
                         {{ m.text }}
                     </p>
@@ -49,12 +47,9 @@
         </div>
     </main>
 
-    <!-- MODALE D’ACTIONS (Copier / Modifier / Supprimer / Annuler) -->
     <div *ngIf="showActionModal" class="fixed inset-0 z-[100]">
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="closeActionModal()"></div>
 
-        <!-- Carte -->
         <div class="relative top-1/2 -translate-y-1/2 mx-auto w-[92%] max-w-sm">
             <div class="rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
                 <div class="p-4">
@@ -73,13 +68,13 @@
                         Copier le texte
                     </button>
 
-                    <button type="button"
+                    <button *ngIf="selectedIsMine" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="ouvrirEditionMessage()">
                         Modifier le message
                     </button>
 
-                    <button type="button"
+                    <button *ngIf="selectedIsMine" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDelete()">
                         Supprimer le message
@@ -97,7 +92,6 @@
         </div>
     </div>
 
-    <!-- MODALE D'ÉDITION (simple) -->
     <div *ngIf="showEditModal" class="fixed inset-0 z-[110]">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="fermerEdition()"></div>
 
@@ -115,7 +109,7 @@
                 <div class="p-3 flex gap-2">
                     <button type="button"
                         class="flex-1 rounded-xl bg-[#315f92] text-white text-sm px-4 py-2 active:scale-[0.98]"
-                        (click)="validerEdition()">
+                        (click)="confirmRename()">
                         Enregistrer
                     </button>
                     <button type="button"

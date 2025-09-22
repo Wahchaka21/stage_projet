@@ -231,11 +231,108 @@ async function deleteMessage(messageId, userId, isAdmin = false) {
     }
 }
 
+async function modifyMessage(messageId, userId, nouveauTexte) {
+    try {
+        if (!isValideObjectId(messageId)) {
+            throw persoError("INVALID_ID", "ID de message invalide", { fields: { messageId } })
+        }
+
+        const type = typeof nouveauTexte
+        if (type !== "string" && type !== "number") {
+            throw persoError("VALIDATION_ERROR", "Texte invalide", { fields: { text: "string attendu" } })
+        }
+        let texte
+        if (type === "number") {
+            texte = String(nouveauTexte)
+        }
+        else {
+            texte = nouveauTexte
+        }
+        texte = texte.trim()
+
+        if (texte.length === 0) {
+            throw persoError("VALIDATION_ERROR", "Le message ne peut pas être vide", { fields: { text: "vide" } })
+        }
+
+        if (texte.length > 5000) {
+            throw persoError("VALIDATION_ERROR", "Le message dépasse 5000 caractères", { fields: { max: 5000 } })
+        }
+
+        const filtre = { _id: messageId, userId: userId }
+        const cible = await message.findOne(filtre).lean()
+
+        if (!cible) {
+            throw persoError("NOT_FOUND", "Message introuvable (ou non autorisé)", { fields: { messageId } })
+        }
+
+        const maj = await message
+        .findOneAndUpdate(
+            filtre,
+            { $set: { text: texte } },
+            { new: true, runValidators: true }
+        )
+        .lean()
+
+        if (!maj) {
+            throw persoError("DB_ERROR", "La modification du message n'a pas abouti")
+        }
+
+        let atOut = maj.at
+
+        if (maj.at instanceof Date) {
+            atOut = maj.at.toISOString()
+        } 
+        else {
+            const tmp = new Date(maj.at)
+            if(isNaN(tmp.getTime())) {
+                atOut = new Date().toISOString()
+            }
+            else {
+                atOut = tmp.toISOString()
+            }
+        }
+
+        let updatedAtOut
+        if(maj.updatedAt instanceof Date) {
+            updatedAtOut = maj.updatedAt.toISOString()
+        }
+        else{
+            if(maj.updatedAt) {
+                const tmp2 = new Date(maj.updatedAt)
+                if(isNaN(tmp2.getTime())) {
+                    updatedAtOut = undefined
+                }
+                else {
+                    updatedAtOut = tmp2.toISOString()
+                }
+            }
+            else {
+                updatedAtOut = undefined
+            }
+        }
+
+        return {
+            _id: String(maj._id),
+            conversationId: String(maj.conversationId),
+            userId: String(maj.userId),
+            text: maj.text,
+            at: atOut,
+            updatedAt: updatedAtOut
+        }
+    }
+    catch (err) {
+        if (err && err.code) {
+            throw err
+        }
+        throw persoError("DB_ERROR", "Erreur lors de la modification du message")
+    }
+}
+
 module.exports = {
     listMessages,
     saveMessage,
     getOrCreateConversation,
     listMessagesBetween,
-    deleteMessage
+    deleteMessage,
+    modifyMessage
 }
-

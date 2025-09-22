@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ChatService, ChatMessage } from './chat.service';
 import { DeleteMessageService } from './delete-message.service';
+import { modifyMessageService } from './modify-message.service';
 
 type UiMessage = {
   id: string
@@ -21,19 +22,20 @@ type UiMessage = {
 })
 export class Chat implements OnInit, OnDestroy {
 
-  // --- état UI pour la modale d’actions ---
   showActionModal: boolean = false
   modalMessageIndex: number | null = null
   selectedMessageId: string | null = null
   showEditModal: boolean = false
   brouillonEdition: string = ""
   editMessageId: string | null = null
+  selectedIsMine: boolean = false
 
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
     private chat: ChatService,
-    private deleteMessageService: DeleteMessageService
+    private deleteMessageService: DeleteMessageService,
+    private modifyMessageService: modifyMessageService
   ) { }
 
   //l'id de la personne a qui on parle
@@ -280,6 +282,26 @@ export class Chat implements OnInit, OnDestroy {
     this.chat.disconnect()
   }
 
+  openActionModal(i: number, messageId: string): void {
+    this.modalMessageIndex = i
+    this.selectedMessageId = messageId
+    this.showActionModal = true
+
+    const m = this.messages[i]
+    if (m && m.me === true) {
+      this.selectedIsMine = true
+    }
+    else {
+      this.selectedIsMine = false
+    }
+  }
+
+  closeActionModal(): void {
+    this.showActionModal = false
+    this.modalMessageIndex = null
+    this.selectedMessageId = null
+  }
+
   async handleDelete(messageId: string): Promise<void> {
     try {
       await this.deleteMessageService.deleteMessage(messageId)
@@ -289,18 +311,6 @@ export class Chat implements OnInit, OnDestroy {
     catch (err) {
       console.error("Erreur de suppresion du message :", err)
     }
-  }
-
-  openActionModal(i: number, messageId: string): void {
-    this.modalMessageIndex = i
-    this.selectedMessageId = messageId
-    this.showActionModal = true
-  }
-
-  closeActionModal(): void {
-    this.showActionModal = false
-    this.modalMessageIndex = null
-    this.selectedMessageId = null
   }
 
   async confirmDelete(): Promise<void> {
@@ -344,18 +354,31 @@ export class Chat implements OnInit, OnDestroy {
     this.editMessageId = null
   }
 
-  async validerEdition(): Promise<void> {
+  async confirmRename(): Promise<void> {
+    // on lit depuis l'état de la modale pour éviter les erreurs d’argument
     const id = this.editMessageId
-    const nouveau = (this.brouillonEdition || "").trim()
-    if (!id || !nouveau) {
-      this.fermerEdition()
+    const nouveauTexte = this.brouillonEdition
+
+    if (!id) {
       return
     }
 
-    const cible = this.messages.find(m => m.id === id)
-    if (cible) {
-      cible.text = nouveau
+    try {
+      const res = await this.modifyMessageService.modifyMessage(id, nouveauTexte)
+
+      // mettre à jour le texte en place
+      const idx = this.messages.findIndex(m => m.id === id)
+      if (idx !== -1) {
+        this.messages[idx] = {
+          ...this.messages[idx],
+          text: String(nouveauTexte)
+        }
+      }
+
+      this.fermerEdition()
     }
-    this.fermerEdition()
+    catch (err) {
+      console.error("[confirmRename] erreur :", err)
+    }
   }
 }
