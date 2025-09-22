@@ -107,7 +107,7 @@ export class Home implements OnInit {
   getChatLink(): any[] | null {
     const pid = this.chatPeerId()
     if (pid) {
-      return ['/discussion', pid]
+      return ["/discussion", pid]
     }
     else {
       return null
@@ -124,7 +124,7 @@ export class Home implements OnInit {
   }
 
   isAdmin(): boolean {
-    if (this.me && this.me.role === 'admin') {
+    if (this.me && this.me.role === "admin") {
       return true
     }
     return false

@@ -1,10 +1,10 @@
-﻿import { ComponentFixture, TestBed } from '@angular/core/testing'
-import { HttpClientTestingModule } from '@angular/common/http/testing'
-import { of, Subject } from 'rxjs'
-import { Admin } from './admin'
-import { ChatService } from '../chat/chat.service'
-import { DeleteMessageService } from '../chat/delete-message.service'
-import { modifyMessageService } from '../chat/modify-message.service'
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { of, Subject } from 'rxjs';
+import { Admin } from './admin';
+import { ChatService } from '../chat/chat.service';
+import { DeleteMessageService } from '../chat/delete-message.service';
+import { modifyMessageService } from '../chat/modify-message.service';
 
 class ChatServiceMock {
   private subject = new Subject<any>()

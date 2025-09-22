@@ -28,67 +28,94 @@ type UiMessage = {
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl: './admin.html',
+  templateUrl: './admin.html'
 })
 export class Admin implements OnInit, OnDestroy {
-  private API = "http://localhost:3000"
+  // Base d'URL de ton API backend
+  private readonly api = "http://localhost:3000"
 
-  users: AdminUser[] = []
-  usersLoading = false
-  usersError: string | null = null
-  selectedUser: AdminUser | null = null
-  initialSelectionDone = false
-  messages: UiMessage[] = []
-  messagesLoading = false
-  messagesError: string | null = null
-  messageDraft = ""
-  editMessageId: string | null = null
-  editDraft = ""
-  editError: string | null = null
-  me: any | null = null
-  myUserId: string | null = null
+  // --- État côté utilisateurs (colonne de gauche)
+  users: AdminUser[] = []                 // liste des utilisateurs retournés par /admin/users
+  usersLoading = false                    // état de chargement de la liste
+  usersError: string | null = null        // message d'erreur éventuel
+  selectedUser: AdminUser | null = null   // utilisateur actuellement sélectionné
+  hasSelectedOnce = false                 // permet d'éviter de reselectionner auto au rechargement
 
-  private currentPeerId: string | null = null
-  private messageSub: Subscription | null = null
+  // --- État côté messages (colonne de droite)
+  messages: UiMessage[] = []              // messages de la conversation courante
+  messagesLoading = false                 // état de chargement de l'historique
+  messagesError: string | null = null     // message d'erreur affiché dans la zone messages
+  messageDraft = ""                       // contenu du textarea d'envoi
+
+  // --- Édition d'un message
+  editMessageId: string | null = null     // id du message en cours d'édition (si mode édition actif)
+  editDraft = ""                          // contenu du textarea d'édition
+  editError: string | null = null         // erreur éventuelle affichée pendant l'édition
+
+  // --- Infos sur l'admin connecté
+  me: any | null = null                   // payload /auth/me (peut contenir d'autres infos)
+  myUserId: string | null = null          // id stringifié de l'admin connecté
+
+  // --- Socket & peer
+  private activePeerId: string | null = null              // id de l'utilisateur avec qui on est connectés en temps réel
+  private messageSubscription: Subscription | null = null // abonnement au flux temps réel
 
   constructor(
     private http: HttpClient,
-    private chat: ChatService,
+    private chatService: ChatService,
     private deleteService: DeleteMessageService,
     private modifyService: modifyMessageService
   ) { }
 
   ngOnInit(): void {
-    this.loadCurrentUser()
+    this.loadConnectedAdmin()
   }
 
   ngOnDestroy(): void {
-    if (this.messageSub) {
-      this.messageSub.unsubscribe()
-      this.messageSub = null
+    // Si on s'est abonné au flux socket, on s'en désabonne proprement
+    if (this.messageSubscription) {
+      this.messageSubscription.unsubscribe()
+      this.messageSubscription = null
     }
-    this.chat.disconnect()
+    // Et on ferme la connexion socket
+    else {
+      this.chatService.disconnect()
+    }
   }
 
+  // Nom affiché pour un utilisateur (name > nickname > email > fallback)
   getDisplayName(user: AdminUser | null): string {
     if (!user) {
       return "Utilisateur"
     }
 
-    if (user.name && String(user.name).trim().length > 0) {
-      return String(user.name)
+    // name prioritaire s'il existe et non vide
+    if (user.name) {
+      const trimmedName = String(user.name).trim()
+      if (trimmedName.length > 0) {
+        return trimmedName
+      }
     }
 
-    if (user.nickname && String(user.nickname).trim().length > 0) {
-      return String(user.nickname)
+    // sinon nickname
+    if (user.nickname) {
+      const trimmedNickname = String(user.nickname).trim()
+      if (trimmedNickname.length > 0) {
+        return trimmedNickname
+      }
     }
 
+    // sinon email
     if (user.email) {
       return String(user.email)
     }
-    return "Utilisateur"
+
+    else {
+      return "Utilisateur"
+    }
   }
 
+  // Bouton "Envoyer" désactivé si pas d'utilisateur sélectionné ou message vide
   isSendDisabled(): boolean {
     if (!this.selectedUser) {
       return true
@@ -98,223 +125,26 @@ export class Admin implements OnInit, OnDestroy {
       return true
     }
 
-    const trimmed = this.messageDraft.trim()
-    if (trimmed.length === 0) {
+    const trimmedDraft = this.messageDraft.trim()
+    if (trimmedDraft.length === 0) {
       return true
     }
-
-    return false
-  }
-
-  selectUser(user: AdminUser): void {
-    if (!user || !user._id) {
-      return
-    }
-
-    if (this.selectedUser && this.selectedUser._id === user._id && this.currentPeerId === String(user._id)) {
-      return
-    }
-
-    this.selectedUser = user
-    this.initialSelectionDone = true
-    this.currentPeerId = String(user._id)
-    this.messages = []
-    this.messagesLoading = true
-    this.messagesError = null
-    this.messageDraft = ""
-    this.editMessageId = null
-    this.editDraft = ""
-    this.editError = null
-
-    if (this.messageSub) {
-      this.messageSub.unsubscribe()
-      this.messageSub = null
-    }
-    this.chat.disconnect()
-
-    const opened = this.chat.connect(this.currentPeerId)
-    if (opened) {
-      this.messageSub = this.chat.stream().subscribe((msg) => {
-        this.handleIncoming(msg)
-      })
-    }
     else {
-      this.messagesError = "Impossible d'ouvrir la connexion temps réel"
-    }
-
-    const targetId = this.currentPeerId
-    this.chat.getHistoryWithPeer(targetId, 100).subscribe({
-      next: (res) => {
-        if (this.currentPeerId !== targetId) {
-          return
-        }
-        if (res && Array.isArray(res.messages)) {
-          const mapped: UiMessage[] = []
-          for (const item of res.messages) {
-            const ui = this.mapMessage(item)
-            if (ui.id) {
-              mapped.push(ui)
-            }
-          }
-          this.messages = mapped
-          this.scrollToBottom()
-        }
-        else {
-          this.messages = []
-        }
-        this.messagesLoading = false
-      },
-      error: () => {
-        if (this.currentPeerId !== targetId) {
-          return
-        }
-        this.messagesLoading = false
-        this.messagesError = "Impossible de charger les messages"
-      }
-    })
-  }
-
-  sendMessage(): void {
-    if (!this.selectedUser) {
-      return
-    }
-    this.messagesError = null
-
-    const text = this.messageDraft
-    if (!text) {
-      return
-    }
-
-    const trimmed = text.trim()
-    if (trimmed.length === 0) {
-      return
-    }
-
-    const ok = this.chat.send(trimmed)
-    if (!ok) {
-      this.messagesError = "Impossible d'envoyer le message"
-      return
-    }
-
-    this.messageDraft = ""
-  }
-
-  openEdit(message: UiMessage): void {
-    if (!message || !message.id) {
-      return
-    }
-    this.editMessageId = message.id
-    this.editDraft = message.text
-    this.editError = null
-  }
-
-  cancelEdit(): void {
-    this.editMessageId = null
-    this.editDraft = ""
-    this.editError = null
-  }
-
-  async confirmEdit(): Promise<void> {
-    if (!this.editMessageId) {
-      return
-    }
-    this.editError = null
-
-    const draft = this.editDraft
-    if (!draft) {
-      this.editError = "Le message ne peut pas être vide"
-      return
-    }
-    const trimmed = draft.trim()
-    if (trimmed.length === 0) {
-      this.editError = "Le message ne peut pas être vide"
-      return
-    }
-
-    try {
-      const result = await this.modifyService.modifyMessage(this.editMessageId, trimmed)
-      for (const item of this.messages) {
-        if (item.id === this.editMessageId) {
-          item.text = trimmed
-          let updatedLabel = ""
-          if (result && result.updatedAt) {
-            const updatedDate = new Date(result.updatedAt)
-            if (!isNaN(updatedDate.getTime())) {
-              updatedLabel = updatedDate.toLocaleString()
-            }
-          }
-          if (!updatedLabel) {
-            const now = new Date()
-            updatedLabel = now.toLocaleString()
-          }
-          item.updatedAt = updatedLabel
-        }
-      }
-      this.editMessageId = null
-      this.editDraft = ""
-    }
-    catch (err: any) {
-      if (typeof err === "string") {
-        this.editError = err
-      }
-      else {
-        this.editError = "Erreur lors de la modification du message"
-      }
+      return false
     }
   }
 
-  async deleteMessage(messageId: string): Promise<void> {
-    if (!messageId) {
-      return
-    }
-    this.messagesError = null
-    try {
-      await this.deleteService.deleteMessage(messageId)
-      const filtered: UiMessage[] = []
-      for (const item of this.messages) {
-        if (item.id !== messageId) {
-          filtered.push(item)
-        }
-      }
-      this.messages = filtered
-    }
-    catch (err: any) {
-      if (typeof err === "string") {
-        this.messagesError = err
-      } else {
-        this.messagesError = "Erreur lors de la suppression du message"
-      }
-    }
-  }
-
-  async copyMessage(messageId: string): Promise<void> {
-    if (!messageId) {
-      return
-    }
-    this.messagesError = null
-    const item = this.messages.find((m) => m.id === messageId)
-    if (!item) {
-      return
-    }
-    if (!navigator || !navigator.clipboard) {
-      this.messagesError = "La copie n'est pas disponible sur ce navigateur"
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(item.text)
-    }
-    catch (_err) {
-      this.messagesError = "Erreur lors de la copie du message"
-    }
-  }
-
+  // Badge d'auteur sur une bulle de message : "Moi" si c'est l'admin, sinon nom de l'utilisateur ciblé
   getAuthorLabel(message: UiMessage): string {
     if (message && message.me) {
       return "Moi"
     }
-    return this.getDisplayName(this.selectedUser)
+    else {
+      return this.getDisplayName(this.selectedUser)
+    }
   }
 
+  // trackBy pour *ngFor : évite le re-render complet si l'ordre change
   trackByMessage(index: number, item: UiMessage): string {
     if (item && item.id) {
       return item.id
@@ -322,12 +152,182 @@ export class Admin implements OnInit, OnDestroy {
     return String(index)
   }
 
-  private loadCurrentUser(): void {
+  // Sélection d'un utilisateur dans la liste
+  selectUser(user: AdminUser): void {
+    // sécurité : pas d'id => on ignore
+    if (!user || !user._id) {
+      return
+    }
+
+    // On ne refait rien si on est déjà sur le même utilisateur/peer
+    const newPeerId = String(user._id)
+    const alreadyOnSameUser = this.selectedUser && this.selectedUser._id === user._id && this.activePeerId === newPeerId
+    if (alreadyOnSameUser) {
+      return
+    }
+
+    // On mémorise la sélection courante
+    this.selectedUser = user
+    this.hasSelectedOnce = true
+    this.activePeerId = newPeerId
+
+    // On reset la zone messages (UI) avant de recharger
+    this.clearMessageArea()
+    // On coupe la connexion temps réel précédente (si existante)
+    this.disconnectFromPeer()
+    // On ouvre une nouvelle connexion temps réel avec ce peer
+    this.connectToPeer(newPeerId)
+    // On récupère l'historique initial
+    this.fetchHistoryForPeer(newPeerId)
+  }
+
+  // Envoi d'un message via le service socket
+  sendMessage(): void {
+    // Si désactivé (pas de user / message vide), on arrête
+    if (this.isSendDisabled()) {
+      return
+    }
+
+    // Trim pour éviter d'envoyer des espaces
+    const draft = this.messageDraft.trim()
+    // chatService.send retourne un booléen 'ok' (selon ton implémentation)
+    const sendOk = this.chatService.send(draft)
+    if (!sendOk) {
+      this.messagesError = "Impossible d'envoyer le message"
+      return
+    }
+
+    // On vide le textarea et on planifie le scroll en bas
+    this.messageDraft = ""
+    this.scheduleScroll()
+  }
+
+  // Ouvre le mode édition pour un message
+  openEdit(message: UiMessage): void {
+    if (!message || !message.id) {
+      return
+    }
+
+    this.editMessageId = message.id   // on mémorise l'id du message édité
+    this.editDraft = message.text     // on pré-remplit le textarea d'édition
+    this.editError = null             // on efface l'erreur éventuelle
+  }
+
+  // Ferme l'édition et nettoie l'état d'édition
+  cancelEdit(): void {
+    this.editMessageId = null
+    this.editDraft = ""
+    this.editError = null
+  }
+
+  // Valide l'édition : appelle l'API, met à jour la liste, ferme l'édition
+  async confirmEdit(): Promise<void> {
+    if (!this.editMessageId) {
+      return
+    }
+
+    // Validation côté client
+    const trimmedDraft = this.editDraft.trim()
+    if (trimmedDraft.length === 0) {
+      this.editError = "Le message ne peut pas etre vide"
+      return
+    }
+
+    try {
+      // Appel service : PUT /chat/modify/:id
+      const response = await this.modifyService.modifyMessage(this.editMessageId, trimmedDraft)
+      // Mise à jour locale de la bulle (texte + "Modifié")
+      this.updateMessageAfterEdit(this.editMessageId, trimmedDraft, response?.updatedAt)
+      // Sortie du mode édition
+      this.cancelEdit()
+    }
+    catch (error: any) {
+      // Gestion des erreurs renvoyées par le service
+      if (typeof error === "string") {
+        this.editError = error
+      }
+      else {
+        this.editError = "Erreur lors de la modification du message"
+      }
+    }
+  }
+
+  // Suppression d'un message
+  async deleteMessage(messageId: string): Promise<void> {
+    if (!messageId) {
+      return
+    }
+
+    this.messagesError = null
+
+    try {
+      // Appel du service de suppression
+      await this.deleteService.deleteMessage(messageId)
+      // On reconstruit le tableau sans le message supprimé
+      const remaining: UiMessage[] = []
+      for (const entry of this.messages) {
+        if (entry.id !== messageId) {
+          remaining.push(entry)
+        }
+      }
+      this.messages = remaining
+    }
+    catch (error: any) {
+      if (typeof error === "string") {
+        this.messagesError = error
+      }
+      else {
+        this.messagesError = "Erreur lors de la suppression du message"
+      }
+    }
+  }
+
+  // Copie d'un message dans le presse-papiers
+  async copyMessage(messageId: string): Promise<void> {
+    if (!messageId) {
+      return
+    }
+
+    this.messagesError = null
+
+    // On retrouve la cible à partir de l'id
+    let target: UiMessage | null = null
+    for (const entry of this.messages) {
+      if (entry.id === messageId) {
+        target = entry
+        break
+      }
+    }
+    if (!target) {
+      return
+    }
+
+    // Compatibilité navigateur
+    if (!navigator || !navigator.clipboard) {
+      this.messagesError = "La copie n'est pas disponible sur ce navigateur"
+      return
+    }
+
+    // Copie asynchrone
+    try {
+      await navigator.clipboard.writeText(target.text)
+    }
+    catch (_err) {
+      this.messagesError = "Erreur lors de la copie du message"
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Chargement de l'admin connecté (vérifie aussi s'il a le rôle admin)
+  // ------------------------------------------------------------------
+  private loadConnectedAdmin(): void {
     this.usersLoading = true
     this.usersError = null
 
-    this.http.get<any>(`${this.API}/auth/me`, { withCredentials: true }).subscribe({
+    // /auth/me pour récupérer l'utilisateur courant (avec cookie => withCredentials)
+    this.http.get<any>(`${this.api}/auth/me`, { withCredentials: true }).subscribe({
       next: (user) => {
+        // Si on a un _id, on considère l'admin comme connecté
         if (user && user._id) {
           this.me = user
           this.myUserId = String(user._id)
@@ -337,6 +337,7 @@ export class Admin implements OnInit, OnDestroy {
           this.myUserId = null
         }
 
+        // On refuse l'accès si pas admin
         if (!this.me || this.me.role !== "admin") {
           this.usersLoading = false
           this.users = []
@@ -344,9 +345,11 @@ export class Admin implements OnInit, OnDestroy {
           return
         }
 
+        // Sinon on charge la liste des utilisateurs
         this.loadUsers()
       },
       error: () => {
+        // Erreur /auth/me => on réinitialise
         this.me = null
         this.myUserId = null
         this.usersLoading = false
@@ -355,112 +358,242 @@ export class Admin implements OnInit, OnDestroy {
     })
   }
 
+  // ------------------------------------
+  // Récupération de la liste d'utilisateurs
+  // ------------------------------------
   private loadUsers(): void {
-    this.usersError = null
     this.usersLoading = true
+    this.usersError = null
 
-    this.http.get<any>(`${this.API}/admin/users`, { withCredentials: true }).subscribe({
-      next: (res) => {
+    this.http.get<any>(`${this.api}/admin/users`, { withCredentials: true }).subscribe({
+      next: (response) => {
         let list: AdminUser[] = []
-        if (res && Array.isArray(res.data)) {
-          list = res.data
+
+        // Selon ta route, les données peuvent être dans response.data ou être la liste directement
+        if (response && Array.isArray(response.data)) {
+          list = response.data
         }
-        else if (Array.isArray(res)) {
-          list = res
+        else if (Array.isArray(response)) {
+          list = response
         }
+
         this.users = list
         this.usersLoading = false
 
-        if (!this.initialSelectionDone && this.users.length > 0) {
+        // Sélection automatique du premier utilisateur au premier chargement
+        if (!this.hasSelectedOnce && this.users.length > 0) {
           this.selectUser(this.users[0])
         }
       },
       error: () => {
-        this.usersLoading = false
         this.users = []
+        this.usersLoading = false
         this.usersError = "Impossible de recuperer la liste des utilisateurs"
       }
     })
   }
 
-  private handleIncoming(msg: ChatMessage): void {
-    const ui = this.mapMessage(msg)
-    if (!ui.id) {
+  // -------------------------------------------------
+  // Connexion temps réel au 'peer' (l'utilisateur ciblé)
+  // -------------------------------------------------
+  private connectToPeer(peerId: string): void {
+    // Ouverture de la socket pour ce peer
+    const opened = this.chatService.connect(peerId)
+    if (!opened) {
+      this.messagesError = "Impossible d'ouvrir la connexion temps reel"
       return
     }
 
-    let updated = false
-    for (const item of this.messages) {
-      if (item.id === ui.id) {
-        item.text = ui.text
-        item.at = ui.at
-        item.updatedAt = ui.updatedAt
-        updated = true
+    // Abonnement au flux des messages en temps réel
+    this.messageSubscription = this.chatService.stream().subscribe((message) => {
+      this.handleIncoming(message)
+    })
+  }
+
+  // -------------------------------------------------
+  // Déconnexion propre du flux socket en cours
+  // -------------------------------------------------
+  private disconnectFromPeer(): void {
+    // On se désabonne du flux si nécessaire
+    if (this.messageSubscription && typeof this.messageSubscription.unsubscribe === "function") {
+      this.messageSubscription.unsubscribe()
+    }
+    this.messageSubscription = null
+    // Et on coupe la socket
+    this.chatService.disconnect()
+  }
+
+  // -------------------------------------------------
+  // Chargement de l'historique des messages pour un peer
+  // -------------------------------------------------
+  private fetchHistoryForPeer(peerId: string): void {
+    this.messagesLoading = true
+    this.messagesError = null
+
+    // On demande, par ex, les 100 derniers messages
+    this.chatService.getHistoryWithPeer(peerId, 100).subscribe({
+      next: (result) => {
+        // Si, entre-temps, l'utilisateur actif a changé, on ignore la réponse
+        if (this.activePeerId !== peerId) {
+          return
+        }
+
+        // On remplace l'historique par une liste proprement "mappée" pour l'UI
+        this.messages = []
+        if (result && Array.isArray(result.messages)) {
+          for (const raw of result.messages) {
+            const mapped = this.mapMessage(raw)
+            if (mapped.id) {
+              this.messages.push(mapped)
+            }
+          }
+        }
+
+        this.messagesLoading = false
+        // On descend au bas de la zone (derniers messages visibles)
+        this.scheduleScroll()
+      },
+      error: () => {
+        if (this.activePeerId !== peerId) {
+          return
+        }
+
+        this.messagesLoading = false
+        this.messages = []
+        this.messagesError = "Impossible de charger les messages"
+      }
+    })
+  }
+
+  // Réinitialise la zone messages lors d'un changement d'utilisateur
+  private clearMessageArea(): void {
+    this.messages = []
+    this.messagesLoading = false
+    this.messagesError = null
+    this.messageDraft = ''
+    this.editMessageId = null
+    this.editDraft = ''
+    this.editError = null
+  }
+
+  // Réception d'un message temps réel (ou édition d'un message existant)
+  private handleIncoming(msg: ChatMessage): void {
+    // On convertit la forme brute -> forme UI
+    const mapped = this.mapMessage(msg)
+    // Si pas d'id (sécurité), on ignore
+    if (!mapped.id) {
+      return
+    }
+
+    // Savoir si on doit rester collé en bas (si l'utilisateur n'est pas en train de remonter l'historique)
+    const stickToBottom = this.shouldStickToBottom()
+
+    // On tente d'abord une mise à jour "in place" d'un message existant (edition)
+    let alreadyThere = false
+    for (const entry of this.messages) {
+      if (entry.id === mapped.id) {
+        entry.text = mapped.text
+        entry.at = mapped.at
+        entry.updatedAt = mapped.updatedAt
+        alreadyThere = true
+        break
       }
     }
 
-    if (!updated) {
-      this.messages.push(ui)
+    // Sinon, c'est un nouveau message, on l'ajoute à la fin
+    if (!alreadyThere) {
+      this.messages.push(mapped)
     }
 
-    this.scrollToBottom()
+    // Si on était proche du bas, on redéfile en bas (sinon on ne touche pas au scroll)
+    if (stickToBottom) {
+      this.scheduleScroll()
+    }
   }
 
+  // Met à jour le message en local après un succès d'édition (texte + libellé "Modifié")
+  private updateMessageAfterEdit(messageId: string, newText: string, updatedAtRaw?: string): void {
+    // On calcule le label "Modifié xx/xx/xxxx ..." (si le backend nous donne la date, on l'utilise)
+    let updatedLabel = ""
+    if (updatedAtRaw) {
+      updatedLabel = this.formatDate(updatedAtRaw, true)
+    }
+    if (updatedLabel.length === 0) {
+      updatedLabel = this.formatDate(new Date().toISOString(), true)
+    }
+
+    // On trouve la cible et on la met à jour
+    for (const entry of this.messages) {
+      if (entry.id === messageId) {
+        entry.text = newText
+        if (updatedLabel.length > 0) {
+          entry.updatedAt = updatedLabel
+        }
+      }
+    }
+  }
+
+  // Conversion d'un message backend -> forme UiMessage
   private mapMessage(msg: ChatMessage | any): UiMessage {
-    const id = this.extractId(msg)
-    const me = this.isFromMe(msg)
-    const text = this.extractText(msg)
-    let atSource: any = undefined
+    const id = this.extractId(msg)         // _id | id -> string
+    const me = this.isFromMe(msg)          // me = true si message.userId === admin._id
+    const text = this.extractText(msg)     // force en string
+
+    // Formatage de la date d'envoi
+    let sentAtRaw: any = undefined
     if (msg && msg.at) {
-      atSource = msg.at
+      sentAtRaw = msg.at
     }
-    const at = this.formatDate(atSource)
+    const at = this.formatDate(sentAtRaw)
 
-    let updatedSource: any = undefined
+    // Formatage de la date de modification (optionnelle)
+    let updatedRaw: any = undefined
     if (msg && msg.updatedAt) {
-      updatedSource = msg.updatedAt
+      updatedRaw = msg.updatedAt
     }
-    const updatedAt = this.formatDate(updatedSource, true)
+    const updatedAt = this.formatDate(updatedRaw, true)
 
-    const result: UiMessage = {
+    const message: UiMessage = {
       id,
       me,
       text,
       at
     }
 
-    if (updatedAt) {
-      result.updatedAt = updatedAt
+    if (updatedAt.length > 0) {
+      message.updatedAt = updatedAt
     }
 
-    return result
+    return message
   }
 
+  // Récupère l'id depuis différentes formes possibles
   private extractId(msg: any): string {
     if (msg && msg._id) {
       return String(msg._id)
     }
-
     if (msg && msg.id) {
       return String(msg.id)
     }
-
     return ""
   }
 
+  // true si le message a été envoyé par l'admin (comparaison userId === myUserId)
   private isFromMe(msg: any): boolean {
     if (!this.myUserId) {
       return false
     }
-
     if (msg && msg.userId) {
-      if (String(msg.userId) === String(this.myUserId)) {
+      const authorId = String(msg.userId)
+      const myId = String(this.myUserId)
+      if (authorId === myId) {
         return true
       }
     }
     return false
   }
 
+  // Retourne le texte du message en string
   private extractText(msg: any): string {
     if (!msg) {
       return ""
@@ -470,38 +603,64 @@ export class Admin implements OnInit, OnDestroy {
       return msg.text
     }
 
-    if (msg.text != null) {
+    if (msg.text !== undefined && msg.text !== null) {
       return String(msg.text)
     }
+
     return ""
   }
 
-  private formatDate(value: any, allowEmpty: boolean = false): string {
+  // Transforme une valeur (Date | string | timestamp) en libellé localisé
+  // allowEmpty = true => retourne "" si value est invalide (utile pour updatedAt)
+  private formatDate(value: any, allowEmpty = false): string {
     if (!value) {
       if (allowEmpty) {
         return ""
       }
-      const now = new Date()
-      return now.toLocaleString()
+      return new Date().toLocaleString()
     }
-    const date = new Date(value)
-    if (isNaN(date.getTime())) {
+
+    const parsed = new Date(value)
+    if (isNaN(parsed.getTime())) {
       if (allowEmpty) {
         return ""
       }
-      const now = new Date()
-      return now.toLocaleString()
+      return new Date().toLocaleString()
     }
-    return date.toLocaleString()
+
+    return parsed.toLocaleString()
   }
 
+  // Scroll instantané en bas de la zone messages (nécessite l'élément #adminMessages dans le HTML)
   private scrollToBottom(): void {
-    setTimeout(() => {
-      const area = document.getElementById('adminMessages')
-      if (!area) {
-        return
-      }
-      area.scrollTop = area.scrollHeight
+    const target = document.getElementById("adminMessages")
+    if (!target) {
+      return
+    }
+    target.scrollTop = target.scrollHeight
+  }
+
+  // Planifie un scroll en bas au prochain frame (laisse Angular finir de rendre d'abord)
+  private scheduleScroll(): void {
+    requestAnimationFrame(() => {
+      this.scrollToBottom()
     })
+  }
+
+  // Indique si on doit maintenir l'auto-scroll (on n'auto-scroll pas si l'admin remonte l'historique)
+  private shouldStickToBottom(): boolean {
+    const target = document.getElementById('adminMessages')
+    if (!target) {
+      // Sans conteneur, on considère qu'on peut scroller (pas bloquant)
+      return true
+    }
+
+    // distance = combien de pixels on est au-dessus du bas
+    const distance = target.scrollHeight - target.scrollTop - target.clientHeight
+    // Seuil de 120px : si on est proche du bas, on auto-scroll
+    if (distance < 120) {
+      return true
+    }
+    return false
   }
 }
