@@ -122,4 +122,11 @@ export class Home implements OnInit {
     }
     return true
   }
+
+  isAdmin(): boolean {
+    if (this.me && this.me.role === 'admin') {
+      return true
+    }
+    return false
+  }
 }

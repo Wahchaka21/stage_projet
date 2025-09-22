@@ -51,6 +51,14 @@
                 <span class="ml-auto text-[#315f92] group-hover:translate-x-0.5 transition">›</span>
             </a>
         </div>
+
+        <div *ngIf="isAdmin()" class="mt-4">
+            <a routerLink="/julescoachingadminspace"
+                class="flex items-center justify-between rounded-xl border border-[#fbde8a] bg-[#315f92] px-4 py-3 text-white shadow hover:bg-[#24476e] active:scale-[0.99]">
+                <span class="text-sm font-semibold">Espace admin</span>
+                <span class="text-xs uppercase tracking-wide rounded-full bg-[#fbde8a] px-2 py-0.5 text-[#315f92]">Coach</span>
+            </a>
+        </div>
     </header>
 
     <main class="-mt-2 rounded-t-3xl bg-white p-4 pt-6">

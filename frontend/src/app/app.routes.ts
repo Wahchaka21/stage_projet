@@ -29,6 +29,11 @@ export const routes: Routes = [
             import("../chat/chat").then((m) => m.Chat)
     },
     {
+        path: "julescoachingadminspace",
+        loadComponent: () =>
+            import("../admin/admin").then((m) => m.Admin)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"
