@@ -351,20 +351,22 @@ async function uploadPhoto(photoData) {
 
 async function deletePhoto(photoId) {
     try {
-        if (!isValideObjectId(photoId)) {
-            throw persoError("INVALID_ID", "ID de message invalide", { fields: { photoId } })
+        if (!photoId || !isValideObjectId(photoId)) {
+            console.warn('[chatService.deletePhoto] identifiant invalide ou manquant :', photoId)
+            return null
         }
 
         const photo = await photoSchema.findById(photoId)
-        if(!photo){
-            throw persoError("NOT_FOUND", "La photo n'a pas été trouvé", { fields: { photoId }})
+        if (!photo) {
+            console.warn('[chatService.deletePhoto] photo introuvable pour', photoId)
+            return null
         }
 
         const filePath = path.join(
             __dirname,
-            "..",
-            "uploads",
-            "photos",
+            '..',
+            'uploads',
+            'photos',
             path.basename(photo.url)
         )
 
@@ -373,8 +375,8 @@ async function deletePhoto(photoId) {
         if (deleted) {
             fs.unlink(filePath, (err) => {
                 if (err) {
-                    console.warn("Impossible de supprimer le fichier :", filePath)
-                    console.warn("Raison :", err.message)
+                    console.warn('[chatService.deletePhoto] impossible de supprimer le fichier :', filePath)
+                    console.warn('[chatService.deletePhoto] raison :', err.message)
                 }
             })
         }
@@ -385,9 +387,10 @@ async function deletePhoto(photoId) {
         if (err?.type) {
             throw err
         }
-        throw persoError("DB_ERROR", "Erreur suppression de la photo", { original: err.message })
+        throw persoError('DB_ERROR', 'Erreur suppression de la photo', { original: err.message })
     }
 }
+
 
 module.exports = {
     listMessages,

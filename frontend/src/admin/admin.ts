@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -7,6 +7,8 @@ import { Subscription } from 'rxjs';
 import { ChatService, ChatMessage } from '../chat/chat.service';
 import { DeleteMessageService } from '../chat/delete-message.service';
 import { modifyMessageService } from '../chat/modify-message.service';
+import { AddPhotoService } from '../chat/add-photo.service';
+import { DeletePhotoService } from '../chat/delete-photo.service';
 
 type AdminUser = {
   _id: string
@@ -22,6 +24,8 @@ type UiMessage = {
   text: string
   at: string
   updatedAt?: string
+  photoUrl?: string | null
+  photoId?: string | null
 }
 
 @Component({
@@ -46,6 +50,14 @@ export class Admin implements OnInit, OnDestroy {
   messagesLoading = false                 // état de chargement de l'historique
   messagesError: string | null = null     // message d'erreur affiché dans la zone messages
   messageDraft = ""                       // contenu du textarea d'envoi
+  showAttachmentMenu = false
+  @ViewChild('photoInput') photoInput?: ElementRef<HTMLInputElement>
+  photoPreviewUrl: string | null = null
+  previewPhotoId: string | null = null
+  previewPhotoMessageId: string | null = null
+  previewPhotoIsMine = false
+  private photoIdByUrl: Record<string, string> = {}
+  private readonly photoPrefix = '[[photo]]'
 
   // --- Édition d'un message
   editMessageId: string | null = null     // id du message en cours d'édition (si mode édition actif)
@@ -64,7 +76,9 @@ export class Admin implements OnInit, OnDestroy {
     private http: HttpClient,
     private chatService: ChatService,
     private deleteService: DeleteMessageService,
-    private modifyService: modifyMessageService
+    private modifyService: modifyMessageService,
+    private addPhotoService: AddPhotoService,
+    private deletePhotoService: DeletePhotoService
   ) { }
 
   ngOnInit(): void {
@@ -183,6 +197,7 @@ export class Admin implements OnInit, OnDestroy {
 
   // Envoi d'un message via le service socket
   sendMessage(): void {
+    this.closeAttachmentMenu()
     // Si désactivé (pas de user / message vide), on arrête
     if (this.isSendDisabled()) {
       return
@@ -202,9 +217,181 @@ export class Admin implements OnInit, OnDestroy {
     this.scheduleScroll()
   }
 
+  toggleAttachmentMenu(): void {
+    if (this.showAttachmentMenu) {
+      this.showAttachmentMenu = false
+    }
+    else {
+      this.showAttachmentMenu = true
+    }
+  }
+
+  closeAttachmentMenu(): void {
+    if (this.showAttachmentMenu) {
+      this.showAttachmentMenu = false
+    }
+  }
+
+  openPhotoPicker(): void {
+    this.closeAttachmentMenu()
+    if (this.photoInput) {
+      const element = this.photoInput.nativeElement
+      if (element) {
+        element.value = ""
+        element.click()
+      }
+    }
+  }
+
+  async handleUploadPhoto(event: Event): Promise<void> {
+    this.messagesError = null
+    const input = event.target as HTMLInputElement
+    if (!input) {
+      return
+    }
+
+    this.closeAttachmentMenu()
+
+    const fileList = input.files
+    const file = fileList && fileList.length > 0 ? fileList[0] : null
+    if (!file) {
+      return
+    }
+
+    try {
+      const result: any = await this.addPhotoService.addPhoto(file)
+
+      let url = ''
+      if (result && typeof result.url === 'string') {
+        url = result.url
+      } else if (result && result.data && typeof result.data.url === 'string') {
+        url = result.data.url
+      } else if (result && result.photo && typeof result.photo.url === 'string') {
+        url = result.photo.url
+      }
+      url = url ? String(url).trim() : ''
+
+      if (!url) {
+        this.messagesError = "URL photo manquante"
+        return
+      }
+
+      const photoId = this.resolvePhotoIdFromResponse(result)
+      if (photoId) {
+        this.photoIdByUrl[url] = photoId
+      }
+
+      let payload = this.photoPrefix + url
+      if (photoId) {
+        payload = this.photoPrefix + photoId + '::' + url
+      }
+
+      const ok = this.chatService.send(payload)
+      if (!ok) {
+        this.messagesError = "Impossible d'envoyer la photo"
+      }
+      else {
+        this.scheduleScroll()
+      }
+    }
+    catch (err) {
+      this.messagesError = "Erreur lors de l'envoi de la photo"
+      console.error(err)
+    }
+    finally {
+      if (input) {
+        input.value = ''
+      }
+    }
+  }
+
+  private async handleDeletePhoto(photoId: string, photoUrl?: string): Promise<void> {
+    try {
+      await this.deletePhotoService.deletePhoto(photoId)
+      if (photoUrl && this.photoIdByUrl[photoUrl]) {
+        delete this.photoIdByUrl[photoUrl]
+      }
+    }
+    catch (err) {
+      this.messagesError = "Erreur lors de la suppression de la photo"
+      console.error(err)
+    }
+  }
+
+  openPhotoPreview(url: string, messageId: string, photoId?: string | null, isMine?: boolean): void {
+    this.photoPreviewUrl = url
+    this.previewPhotoMessageId = messageId
+
+    if (photoId) {
+      this.previewPhotoId = photoId
+    }
+    else {
+      const known = this.photoIdByUrl[url]
+      if (known) {
+        this.previewPhotoId = known
+      }
+      else {
+        this.previewPhotoId = null
+      }
+    }
+
+    if (isMine === true) {
+      this.previewPhotoIsMine = true
+    }
+    else {
+      this.previewPhotoIsMine = false
+    }
+  }
+
+  cancelPhotoPreview(): void {
+    this.photoPreviewUrl = null
+    this.previewPhotoId = null
+    this.previewPhotoMessageId = null
+    this.previewPhotoIsMine = false
+  }
+
+  async deletePhotoFromPreview(): Promise<void> {
+    const messageId = this.previewPhotoMessageId
+
+    if (!messageId) {
+      return
+    }
+
+    try {
+      await this.deleteMessage(messageId)
+    }
+    finally {
+      this.cancelPhotoPreview()
+    }
+  }
+
+  openPhotoFromMessage(message: UiMessage): void {
+    if (!message || !message.id) {
+      return
+    }
+    if (!message.photoUrl) {
+      return
+    }
+
+    let photoId = message.photoId
+    if (!photoId) {
+      const known = this.photoIdByUrl[message.photoUrl]
+      if (known) {
+        photoId = known
+      }
+    }
+
+    this.openPhotoPreview(message.photoUrl, message.id, photoId, message.me)
+  }
+
+
   // Ouvre le mode édition pour un message
   openEdit(message: UiMessage): void {
     if (!message || !message.id) {
+      return
+    }
+
+    if (message.photoUrl) {
       return
     }
 
@@ -260,10 +447,42 @@ export class Admin implements OnInit, OnDestroy {
 
     this.messagesError = null
 
+    let target: UiMessage | null = null
+    for (const entry of this.messages) {
+      if (entry.id === messageId) {
+        target = entry
+        break
+      }
+    }
+
+    let photoId: string | null = null
+    let photoUrl: string | null = null
+    if (target) {
+      if (target.photoId) {
+        photoId = target.photoId
+      }
+      if (target.photoUrl) {
+        photoUrl = target.photoUrl
+      }
+    }
+
+    if (!photoId && photoUrl) {
+      const known = this.photoIdByUrl[photoUrl]
+      if (known) {
+        photoId = known
+      }
+    }
+
     try {
-      // Appel du service de suppression
+      if (photoId) {
+        let photoUrlValue: string | undefined = undefined
+        if (photoUrl) {
+          photoUrlValue = photoUrl
+        }
+        await this.handleDeletePhoto(photoId, photoUrlValue)
+      }
+
       await this.deleteService.deleteMessage(messageId)
-      // On reconstruit le tableau sans le message supprimé
       const remaining: UiMessage[] = []
       for (const entry of this.messages) {
         if (entry.id !== messageId) {
@@ -271,6 +490,9 @@ export class Admin implements OnInit, OnDestroy {
         }
       }
       this.messages = remaining
+      if (this.previewPhotoMessageId === messageId) {
+        this.cancelPhotoPreview()
+      }
     }
     catch (error: any) {
       if (typeof error === "string") {
@@ -280,8 +502,8 @@ export class Admin implements OnInit, OnDestroy {
         this.messagesError = "Erreur lors de la suppression du message"
       }
     }
-  }
 
+  }
   // Copie d'un message dans le presse-papiers
   async copyMessage(messageId: string): Promise<void> {
     if (!messageId) {
@@ -299,6 +521,10 @@ export class Admin implements OnInit, OnDestroy {
       }
     }
     if (!target) {
+      return
+    }
+
+    if (target.photoUrl) {
       return
     }
 
@@ -474,38 +700,41 @@ export class Admin implements OnInit, OnDestroy {
     this.editMessageId = null
     this.editDraft = ''
     this.editError = null
+    this.showAttachmentMenu = false
+    this.photoIdByUrl = {}
+    this.cancelPhotoPreview()
   }
 
   // Réception d'un message temps réel (ou édition d'un message existant)
   private handleIncoming(msg: ChatMessage): void {
-    // On convertit la forme brute -> forme UI
     const mapped = this.mapMessage(msg)
-    // Si pas d'id (sécurité), on ignore
     if (!mapped.id) {
       return
     }
 
-    // Savoir si on doit rester collé en bas (si l'utilisateur n'est pas en train de remonter l'historique)
     const stickToBottom = this.shouldStickToBottom()
 
-    // On tente d'abord une mise à jour "in place" d'un message existant (edition)
     let alreadyThere = false
-    for (const entry of this.messages) {
+    for (let i = 0; i < this.messages.length; i++) {
+      const entry = this.messages[i]
       if (entry.id === mapped.id) {
-        entry.text = mapped.text
-        entry.at = mapped.at
-        entry.updatedAt = mapped.updatedAt
+        this.messages[i] = {
+          ...entry,
+          text: mapped.text,
+          at: mapped.at,
+          updatedAt: mapped.updatedAt,
+          photoUrl: mapped.photoUrl,
+          photoId: mapped.photoId
+        }
         alreadyThere = true
         break
       }
     }
 
-    // Sinon, c'est un nouveau message, on l'ajoute à la fin
     if (!alreadyThere) {
       this.messages.push(mapped)
     }
 
-    // Si on était proche du bas, on redéfile en bas (sinon on ne touche pas au scroll)
     if (stickToBottom) {
       this.scheduleScroll()
     }
@@ -537,7 +766,28 @@ export class Admin implements OnInit, OnDestroy {
   private mapMessage(msg: ChatMessage | any): UiMessage {
     const id = this.extractId(msg)         // _id | id -> string
     const me = this.isFromMe(msg)          // me = true si message.userId === admin._id
-    const text = this.extractText(msg)     // force en string
+    const rawText = this.extractText(msg)  // force en string
+
+    const photoInfo = this.extractPhotoData(rawText)
+
+    let text = rawText
+    let photoUrl: string | null = null
+    let photoId: string | null = null
+
+    if (photoInfo) {
+      text = ""
+      photoUrl = photoInfo.url
+      if (photoInfo.photoId) {
+        photoId = photoInfo.photoId
+        this.photoIdByUrl[photoInfo.url] = photoInfo.photoId
+      }
+      if (!photoId && photoUrl) {
+        const known = this.photoIdByUrl[photoUrl]
+        if (known) {
+          photoId = known
+        }
+      }
+    }
 
     // Formatage de la date d'envoi
     let sentAtRaw: any = undefined
@@ -557,7 +807,9 @@ export class Admin implements OnInit, OnDestroy {
       id,
       me,
       text,
-      at
+      at,
+      photoUrl,
+      photoId
     }
 
     if (updatedAt.length > 0) {
@@ -566,6 +818,110 @@ export class Admin implements OnInit, OnDestroy {
 
     return message
   }
+
+  private resolvePhotoIdFromResponse(result: any): string | null {
+    if (!result) {
+      return null
+    }
+
+    const candidates: any[] = [result]
+
+    if (result && typeof result === 'object') {
+      if ('data' in result) {
+        candidates.push((result as any).data)
+      }
+      if ('photo' in result) {
+        candidates.push((result as any).photo)
+      }
+    }
+
+    for (const item of candidates) {
+      if (!item || typeof item !== 'object') {
+        continue
+      }
+
+      const candidate: any = item as any
+      if (typeof candidate._id === 'string') {
+        const trimmed = candidate._id.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+      }
+      if (typeof candidate.id === 'string') {
+        const trimmed = candidate.id.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+      }
+
+      const inner = candidate._id
+      if (inner && typeof inner === 'object') {
+        if (typeof (inner as any).$oid === 'string') {
+          const trimmed = (inner as any).$oid.trim()
+          if (trimmed.length > 0) {
+            return trimmed
+          }
+        }
+
+        if (typeof inner.toString === 'function') {
+          const converted = String(inner.toString()).trim()
+          if (converted.length > 0 && converted !== '[object Object]') {
+            return converted
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
+  private isLikelyObjectId(value: string | null | undefined): boolean {
+    if (!value) {
+      return false
+    }
+    const trimmed = String(value).trim()
+    if (trimmed.length !== 24) {
+      return false
+    }
+    return /^[0-9a-fA-F]{24}$/.test(trimmed)
+  }
+
+  private extractPhotoData(text: string): { url: string, photoId: string | null } | null {
+    if (!text) {
+      return null
+    }
+
+    const markerIndex = text.indexOf(this.photoPrefix)
+    if (markerIndex === -1) {
+      return null
+    }
+
+    const payload = text.substring(markerIndex + this.photoPrefix.length).trim()
+    if (!payload) {
+      return null
+    }
+
+    const separatorIndex = payload.indexOf('::')
+    if (separatorIndex >= 0) {
+      const possibleId = payload.substring(0, separatorIndex)
+      const rawUrl = payload.substring(separatorIndex + 2).trim()
+      if (rawUrl.startsWith('http')) {
+        let idValue: string | null = null
+        if (possibleId) {
+          idValue = possibleId
+        }
+        return { url: rawUrl, photoId: idValue }
+      }
+      return null
+    }
+
+    if (payload.startsWith('http')) {
+      return { url: payload, photoId: null }
+    }
+
+    return null
+  }
+
 
   // Récupère l'id depuis différentes formes possibles
   private extractId(msg: any): string {

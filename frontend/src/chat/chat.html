@@ -1,4 +1,4 @@
-﻿<div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]" data-role="chat-root">
+<div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]" data-role="chat-root">
 
     <header class="sticky top-0 z-10 px-4 pt-4 pb-3 bg-gradient-to-b from-[#315f92] to-transparent">
         <div class="flex items-center justify-between text-white">
@@ -14,14 +14,6 @@
                     {{ peerName() || 'Coach' }}
                 </h1>
             </div>
-
-            <button type="button" class="rounded-full p-2 hover:bg-white/10 active:scale-95">
-                <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1.5" />
-                    <circle cx="6" cy="12" r="1.5" />
-                    <circle cx="18" cy="12" r="1.5" />
-                </svg>
-            </button>
         </div>
     </header>
 
@@ -37,9 +29,15 @@
                     [class.bg-[#315f92]]="m.me" [class.text-white]="m.me" [class.rounded-br-sm]="m.me"
                     [class.bg-[#e9eef7]]="!m.me" [class.text-gray-900]="!m.me" [class.rounded-bl-sm]="!m.me"
                     (click)="openActionModal(i, m.id)">
-                    <p class="text-[13px] leading-snug whitespace-pre-wrap break-words">
-                        {{ m.text }}
-                    </p>
+                    <ng-container *ngIf="!m.photoUrl; else photoMessage">
+                        <p class="text-[13px] leading-snug whitespace-pre-wrap break-words">
+                            {{ m.text }}
+                        </p>
+                    </ng-container>
+                    <ng-template #photoMessage>
+                        <img [src]="m.photoUrl" alt="Photo envoyee" loading="lazy"
+                            class="block max-h-64 w-full rounded-xl object-cover" />
+                    </ng-template>
                 </div>
             </div>
 
@@ -62,19 +60,31 @@
                 <div class="border-t border-gray-100"></div>
 
                 <div class="p-2 flex flex-col">
-                    <button type="button"
+                    <button *ngIf="!selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="copierMessageSelectionne()">
                         Copier le texte
                     </button>
 
-                    <button *ngIf="selectedIsMine" type="button"
+                    <button *ngIf="selectedMessageHasPhoto" type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
+                        (click)="openSelectedPhoto()">
+                        Voir la photo
+                    </button>
+
+                    <button *ngIf="selectedIsMine && selectedMessageHasPhoto" type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
+                        (click)="confirmDeletePhoto()">
+                        Supprimer la photo
+                    </button>
+
+                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="ouvrirEditionMessage()">
                         Modifier le message
                     </button>
 
-                    <button *ngIf="selectedIsMine" type="button"
+                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDelete()">
                         Supprimer le message
@@ -124,11 +134,29 @@
 
     <form (ngSubmit)="send()" class="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-4 pb-4">
         <div class="mx-auto flex items-center gap-2 rounded-full bg-white shadow-lg border border-gray-100 px-3 py-2.5">
-            <button type="button" class="p-2 rounded-full hover:bg-gray-100 active:scale-95" title="Pièce jointe">
-                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
-                </svg>
-            </button>
+            <div class="relative" data-role="chat-attachment-area">
+                <button type="button" class="p-2 rounded-full hover:bg-gray-100 active:scale-95" title="Piece jointe"
+                    (click)="toggleAttachmentMenu()" data-role="chat-attachment-toggle">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
+                    </svg>
+                </button>
+
+                <div *ngIf="showAttachmentMenu"
+                    class="absolute bottom-12 left-20 z-30 w-48 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-2 shadow-xl">
+                    <button type="button"
+                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                        (click)="openPhotoPicker()">Ajouter une photo</button>
+                    <button type="button"
+                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-400 hover:bg-gray-100"
+                        (click)="closeAttachmentMenu()">Enregistrer un audio</button>
+                    <button type="button"
+                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-400 hover:bg-gray-100"
+                        (click)="closeAttachmentMenu()">Ajouter une video</button>
+                </div>
+
+                <input #photoInput type="file" accept="image/*" class="hidden" (change)="handleUploadPhoto($event)" />
+            </div>
 
             <input [ngModel]="input()" (ngModelChange)="input.set($event)" name="msg"
                 class="flex-1 bg-transparent outline-none text-[15px] placeholder:text-gray-400" autocomplete="off"
@@ -145,4 +173,21 @@
             </button>
         </div>
     </form>
+
+    <div *ngIf="photoPreviewUrl"
+        class="photo-preview-overlay fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        (click)="closePhotoPreview($event)">
+        <div class="max-h-[90vh] max-w-[92vw] p-4" (click)="$event.stopPropagation()">
+            <img [src]="photoPreviewUrl" alt="Previsualisation photo" loading="lazy"
+                class="max-h-[80vh] w-full rounded-2xl object-contain" />
+            <div *ngIf="previewPhotoIsMine" class="mt-4 flex flex-wrap justify-center gap-2">
+                <button type="button"
+                    class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                    (click)="deletePhotoFromPreview()">Supprimer</button>
+                <button type="button"
+                    class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30"
+                    (click)="cancelPhotoPreview()">Fermer</button>
+            </div>
+        </div>
+    </div>
 </div>
