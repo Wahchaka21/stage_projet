@@ -362,23 +362,35 @@ async function deletePhoto(photoId) {
             return null
         }
 
+        let filename
+        try {
+            const urlObj = new URL(photo.url)
+            filename = path.basename(urlObj.pathname)
+        }
+        catch (parseErr) {
+            filename = path.basename(photo.url)
+        }
+
         const filePath = path.join(
             __dirname,
             '..',
             'uploads',
             'photos',
-            path.basename(photo.url)
+            filename
         )
 
         const deleted = await photoSchema.findByIdAndDelete(photoId)
 
         if (deleted) {
-            fs.unlink(filePath, (err) => {
-                if (err) {
+            try {
+                await fs.promises.unlink(filePath)
+            }
+            catch (fileErr) {
+                if (fileErr.code !== 'ENOENT') {
                     console.warn('[chatService.deletePhoto] impossible de supprimer le fichier :', filePath)
-                    console.warn('[chatService.deletePhoto] raison :', err.message)
+                    console.warn('[chatService.deletePhoto] raison :', fileErr.message)
                 }
-            })
+            }
         }
 
         return deleted

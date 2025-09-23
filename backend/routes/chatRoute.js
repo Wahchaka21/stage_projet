@@ -1,5 +1,5 @@
-const express = require('express')
-const isAuth = require('../middlewares/authCheck')
+const express = require("express")
+const isAuth = require("../middlewares/authCheck")
 const chatController = require("../controllers/chatController")
 const upload = require("../middlewares/uploadPhoto")
 

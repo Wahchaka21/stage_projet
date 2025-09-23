@@ -232,7 +232,7 @@ async function handleUploadPhoto(req, res) {
 
 async function handleDeletePhoto(req, res) {
     try {
-        const photoId = req.params.id
+        const photoId = req.params.photoId
         
         const result = await convoService.deletePhoto(photoId)
 

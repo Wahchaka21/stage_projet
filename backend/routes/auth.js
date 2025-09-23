@@ -1,7 +1,7 @@
-const express = require('express')
-const rateLimit = require('express-rate-limit')
-const authController = require('../controllers/authController')
-const isAuth = require('../middlewares/authCheck')
+const express = require("express")
+const rateLimit = require("express-rate-limit")
+const authController = require("../controllers/authController")
+const isAuth = require("../middlewares/authCheck")
 
 const router = express.Router()
 
@@ -10,7 +10,7 @@ const loginLimiter = rateLimit({
   max: 7,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.' }
+  message: { error: "Trop de tentatives de connexion, veuillez réessayer plus tard." }
 })
 
 const registerLimiter = rateLimit({
@@ -18,12 +18,12 @@ const registerLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many accounts created from this IP, please try again later.' }
+  message: { error: "trop de comptes on été créer depuis cette IP, veuillez réessayer plus tard." }
 })
 
-router.post('/register', registerLimiter, authController.register)
-router.post('/login', loginLimiter, authController.login)
-router.get('/me', isAuth, authController.me)
-router.post('/refresh', authController.refresh)
-router.post('/logout', authController.logout)
+router.post("/register", registerLimiter, authController.register)
+router.post("/login", loginLimiter, authController.login)
+router.get("/me", isAuth, authController.me)
+router.post("/refresh", authController.refresh)
+router.post("/logout", authController.logout)
 module.exports = router
