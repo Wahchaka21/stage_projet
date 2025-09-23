@@ -1,31 +1,32 @@
-const authService = require('../services/authService')
-const { signRefreshToken, verifyRefreshToken } = require('../utils/jwt')
-const { buildRefreshCookieOptions } = require('../utils/cookies')
+const authService = require("../services/authService")
+const { signRefreshToken, verifyRefreshToken } = require("../utils/jwt")
+const { buildRefreshCookieOptions } = require("../utils/cookies")
 
 async function register(req, res) {
   try {
     const { email, password, name, lastname, nickname } = req.body || {}
     const { user, token } = await authService.register({ email, password, name, lastname, nickname })
 
-    // on pose le refresh en cookie HttpOnly
     const refresh = signRefreshToken(user, user.tokenVersion || 0)
     res.cookie('refreshToken', refresh, buildRefreshCookieOptions())
 
     res.status(201).json({ token, user })
   } 
   catch (err) {
-    const type = err.type || 'INTERNAL'
-    let status
-    if (type === 'VALIDATION_ERROR') {
-      status = 400
-    } 
-    else if (type === 'DUPLICATE') {
-      status = 409
-    } 
-    else {
-      status = 500
-    }
-    res.status(status).json({ error: err.message || 'Erreur', fields: err.fields || {} })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[register] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
@@ -36,10 +37,10 @@ async function login(req, res) {
 
     let refreshExpiresIn
     if (remember) {
-      refreshExpiresIn = '30d'
+      refreshExpiresIn = "30d"
     } 
     else {
-      refreshExpiresIn = '1d'
+      refreshExpiresIn = "1d"
     }
 
     let refreshMs
@@ -57,36 +58,42 @@ async function login(req, res) {
     res.status(200).json({ token, user })
   } 
   catch (err) {
-    const type = err.type || 'INTERNAL'
-    let status
-    if (type === 'AUTH_ERROR') {
-      status = 401
-    } 
-    else if (type === 'VALIDATION_ERROR') {
-      status = 400
-    } 
-    else {
-      status = 500
-    }
-    res.status(status).json({ error: 'Information invalide' })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[login] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
 async function refresh(req, res) {
   try {
     const token = req.cookies?.refreshToken
-    if (!token) return res.status(401).json({ error: 'Refresh manquant' })
+    if (!token) return res.status(401).json({ error: "Refresh manquant" })
 
     let payload
-    try { payload = verifyRefreshToken(token) }
-    catch { return res.status(401).json({ error: 'Refresh invalide' }) }
+    try { 
+      payload = verifyRefreshToken(token) 
+    }
+    catch { 
+      return res.status(401).json({ error: "Refresh invalide" }) 
+    }
 
     // authService.getUserById minimal pour vérifier qu'il existe encore et n'est pas soft-deleted
     const user = await authService.getUserForToken(payload.sub)
-    if (!user) return res.status(401).json({ error: 'Utilisateur invalide' })
+    if (!user) return res.status(401).json({ error: "Utilisateur invalide" })
 
-    if (typeof user.tokenVersion === 'number' && payload.ver !== user.tokenVersion) {
-      return res.status(401).json({ error: 'Refresh révoqué' })
+    if (typeof user.tokenVersion === "number" && payload.ver !== user.tokenVersion) {
+      return res.status(401).json({ error: "Refresh révoqué" })
     }
 
     // re-génére un access court + rotate le refresh
@@ -97,7 +104,20 @@ async function refresh(req, res) {
     return res.status(200).json({ token: newAccess })
   } 
   catch (err) {
-    return res.status(500).json({ error: 'Erreur interne' })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[refresh] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
@@ -106,11 +126,24 @@ async function logout(req, res) {
     // invalider globalement tous les refresh de l'utilisateur connecté
     // if (req.user?._id) await authService.bumpTokenVersion(req.user._id)
 
-    res.clearCookie('refreshToken', { ...buildRefreshCookieOptions(), maxAge: 0 })
+    res.clearCookie("refreshToken", { ...buildRefreshCookieOptions(), maxAge: 0 })
     return res.status(200).json({ message: 'Déconnecté' })
   } 
   catch (err) {
-    return res.status(500).json({ error: 'Erreur interne' })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[logout] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 

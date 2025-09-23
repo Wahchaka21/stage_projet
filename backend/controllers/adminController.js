@@ -6,8 +6,20 @@ async function handleGetAllUser(req, res) {
     res.status(200).json({ message: "liste des utilisateurs récupérée", data: user })
   }
   catch (err) {
-    console.error("Erreur controller 'handleGetAllUser' :", err)
-    res.status(500).json({ error: "erreur interne" })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[handleGetAllUser] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
@@ -19,21 +31,20 @@ async function handleUpdateUser(req, res) {
     res.status(200).json({ message: "utilisateur modifié", data: users })
   }
   catch (err) {
-    const type = err.type || 'INTERNAL'
-    let status
-    if (type === 'VALIDATION_ERROR') {
-      status = 400
-    } 
-    else if (type === 'FORBIDDEN_UPDATE') {
-      status = 403
-    } 
-    else if (type === 'NOT_FOUND') {
-      status = 404
-    } 
-    else {
-      status = 500
-    }
-    res.status(status).json({ error: err.message, fields: err.fields || {} })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[handleUpdateUser] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
@@ -47,21 +58,20 @@ async function handleDeleteUser(req, res) {
     res.status(200).json({ message: "utilisateur supprimé", data: user })
   }
   catch (err) {
-    const type = err.type || 'INTERNAL'
-    let status
-    if (type === 'VALIDATION_ERROR') {
-      status = 400
-    } 
-    else if (type === 'NOT_FOUND') {
-      status = 404
-    } 
-    else if (type === 'LAST_ADMIN') {
-      status = 409
-    } 
-    else {
-      status = 500
-    }
-    res.status(status).json({ error: err.message, fields: err.fields || {} })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[handleDeleteUser] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 
@@ -73,24 +83,20 @@ async function handleChangeUserRole(req, res) {
     res.status(200).json({ message: "changement de rôle effectué", data: user })
   }
   catch (err) {
-    const type = err.type || 'INTERNAL'
-    let status
-    if (type === 'VALIDATION_ERROR') {
-      status = 400
-    } 
-    else if (type === 'INVALID_ROLE') {
-      status = 400
-    } 
-    else if (type === 'NOT_FOUND') {
-      status = 404
-    } 
-    else if (type === 'LAST_ADMIN') {
-      status = 409
-    } 
-    else {
-      status = 500
-    }
-    res.status(status).json({ error: err.message, fields: err.fields || {} })
+      if (err && err.code === "INVALID_ID") {
+          return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+      }
+
+      if(err && err.code === "NOT_FOUND") {
+          return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      if (err && err.code === "DB_ERROR") {
+          return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+      }
+
+      console.error("[handleChangeUserRole] erreur inattendue :", err)
+      return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
   }
 }
 

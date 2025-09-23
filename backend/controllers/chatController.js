@@ -1,4 +1,3 @@
-const { text } = require("express")
 const convoService = require("../services/chatService")
 
 async function getHistory(req, res) {
@@ -15,7 +14,20 @@ async function getHistory(req, res) {
         res.json({ items })
     } 
     catch (err) {
-        res.status(500).json({ error: "erreur chargement historique" })
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[getHistory] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
@@ -61,7 +73,20 @@ async function getMessages(req, res) {
         res.status(200).json({ conversationId: out.conversationId, messages: out.messages })
     } 
     catch (err) {
-        res.status(500).json({ error: "erreur chargement messages" })
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[getMessage] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 

@@ -13,18 +13,20 @@ async function handleCreateUser(req, res) {
         })
     }
     catch (err) {
-        console.error("erreur :", err)
-        let status
-        if (err.type === 'VALIDATION_ERROR') {
-            status = 400
-        } 
-        else if (err.type === 'DUPLICATE') {
-            status = 409
-        } 
-        else {
-            status = 500
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
         }
-        res.status(status).json({ error: err.message, fields: err.fields || {} })
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleCreateUser] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
@@ -47,22 +49,21 @@ async function handleDeleteMe(req, res) {
     return res.status(200).json({ message: 'Compte supprimé', data: result })
   } 
   catch (err) {
-    console.error('[DELETE ME] erreur :', err)
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+        }
 
-    if (err?.type === 'PERMISSION_DENIED') {
-        return res.status(403).json(err)
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleDeleteMe] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
-
-    if (err?.type === 'VALIDATION_ERROR') {
-        return res.status(400).json(err)
-    }
-
-    if (err?.type === 'INVALID_CREDENTIALS') {
-        return res.status(401).json(err)
-    }
-
-    return res.status(500).json({ error: 'Erreur interne' })
-  }
 }
 
 async function handleUpdateUserProfile(req, res) {
@@ -78,21 +79,20 @@ async function handleUpdateUserProfile(req, res) {
         })
     }
     catch (err) {
-        console.error("erreur :", err)
-        let status
-        if (err.type === 'VALIDATION_ERROR') {
-            status = 400
-        } 
-        else if (err.type === 'DUPLICATE') {
-            status = 409
-        } 
-        else if (err.type === 'NOT_FOUND') {
-            status = 404
-        } 
-        else {
-            status = 500
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
         }
-        res.status(status).json({ error: err.message, fields: err.fields || {} })
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleUpdateUserProfile] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
@@ -106,18 +106,20 @@ async function handleChangeUserPassword(req, res) {
         res.status(200).json({ message: "mot de passe modifié", data: result })
     }
     catch (err) {
-        console.error("erreur :", err)
-        let status
-        if (err.type === 'VALIDATION_ERROR') {
-            status = 400
-        } 
-        else if (err.type === 'NOT_FOUND') {
-            status = 404
-        } 
-        else {
-            status = 500
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
         }
-        res.status(status).json({ error: err.message, fields: err.fields || {} })
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleChangeUserPassword] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
@@ -136,15 +138,22 @@ async function handleUpdateAvatar(req, res) {
         const updatedUser = await userService.updateUserAvatar(userId, avatarUrl)
         res.status(200).json({ message: "Avatar mis à jour", data: updatedUser })
 
-    } catch (err) {
-        let status
-        if (err.type === "VALIDATION_ERROR") {
-            status = 400
-        } 
-        else {
-            status = 500
+    } 
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
         }
-        res.status(status).json({ error: err.message, fields: err.fields || {} })
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleUpdateAvatar] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
@@ -155,17 +164,20 @@ async function handleGetUserById(req, res) {
         res.status(200).json(user)
     } 
     catch (err) {
-        let status
-        if (err.type === "INVALID_ID") {
-            status = 400
-        } 
-        else if (err.type === 'NOT_FOUND') {
-            status = 404
-        } 
-        else {
-            status = 500
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
         }
-        res.status(status).json({ error: err.message })
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleGetUserById] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
     }
 }
 
