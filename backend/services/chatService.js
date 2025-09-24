@@ -6,6 +6,7 @@ const { getOrCreateConversation } = require("../utils/conversation")
 const photoSchema = require("../schemas/photoSchema")
 const fs = require("fs")
 const path = require("path")
+const videoSchema = require("../schemas/videoSchema")
 
 async function listMessages(conversationId, options = {}) {
     const result = []
@@ -403,6 +404,76 @@ async function deletePhoto(photoId) {
     }
 }
 
+async function uploadVideo(videoData) {
+    try {
+        return await videoSchema.create(videoData)
+    }
+    catch(err) {
+        if (err.name === "ValidationError") {
+            const fields = {}
+            for(let key in err.errors) {
+                fields[key] = err.errors[key].message
+            }
+
+            throw persoError("VALIDATION_ERROR", "Erreur validation upload video", { fields })
+        }
+
+        throw persoError("DB_ERROR", "erreur upload video", { original: err.message })
+    }
+}
+
+async function deleteVideo(videoId) {
+    try {
+        if(!videoId || !isValideObjectId(videoId)) {
+            console.warn("[chatService.deleteVideo] indentifiant invalide ou manquant :", videoId)
+            return null
+        }
+
+        const video = await videoSchema.findById(videoId)
+        if(!video) {
+            console.warn("[chatService.deleteVideo] video introuvable pour", videoId)
+            return null
+        }
+
+        let filename
+        try {
+            const urlObj = new URL(video.url)
+            filename = path.basename(urlObj.pathname)
+        }
+        catch (parseErr) {
+            filename = path.basename(video.url)
+        }
+        
+        const filePath = path.join(
+            __dirname,
+            "..",
+            "uploads",
+            "video",
+            filename
+        )
+
+        const deleted = await videoSchema.findByIdAndDelete(videoId)
+        if(deleted) {
+            try {
+                await fs.promises.unlink(filePath)
+            }
+            catch (fileErr) {
+                if (fileErr.code !== "ENOENT") {
+                    console.warn("[chatService.deleteVideo] impossible de supprimer le fichier :", filePath)
+                    console.warn("[chatService.deleteVideo] raison :", fileErr.message)
+                }
+            }
+        }
+
+        return deleted
+    }
+    catch (err) {
+        if (err?.type) {
+            throw err
+        }
+        throw persoError("DB_ERROR", "Erreur de suppression de la video", { original: err.message})
+    }
+}
 
 module.exports = {
     listMessages,
@@ -412,5 +483,7 @@ module.exports = {
     deleteMessage,
     modifyMessage,
     uploadPhoto,
-    deletePhoto
+    deletePhoto,
+    uploadVideo,
+    deleteVideo
 }

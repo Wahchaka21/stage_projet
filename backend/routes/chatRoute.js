@@ -2,6 +2,7 @@ const express = require("express")
 const isAuth = require("../middlewares/authCheck")
 const chatController = require("../controllers/chatController")
 const upload = require("../middlewares/uploadPhoto")
+const {uploadVideo, gererErreurUpload} = require("../middlewares/uploadVideo")
 
 const router = express.Router()
 
@@ -11,5 +12,7 @@ router.delete("/delete/:id", isAuth, chatController.handleDeleteMessage)
 router.put("/modify/:messageId", isAuth, chatController.handleModifyMessage)
 router.post("/upload", upload.single("photo"), isAuth, chatController.handleUploadPhoto)
 router.delete("/deletePhoto/:photoId", isAuth, chatController.handleDeletePhoto)
+router.post("/uploadVideo", isAuth, uploadVideo.single("video"), chatController.handleUploadVideo, gererErreurUpload)
+router.delete("/deleteVideo", isAuth, chatController.handleDeleteVideo)
 
 module.exports = router

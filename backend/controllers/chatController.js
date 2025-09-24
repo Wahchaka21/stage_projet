@@ -1,4 +1,6 @@
 const convoService = require("../services/chatService")
+const path = require("path")
+const ffmpeg = require("fluent-ffmpeg")
 
 async function getHistory(req, res) {
     try {
@@ -259,11 +261,97 @@ async function handleDeletePhoto(req, res) {
     }
 }
 
+function ffprobeDuration(filePath) {
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err || !metadata?.format?.duration) {
+                return resolve(null)
+            }
+
+            const sec = Math.round(Number(metadata.format.duration))
+            resolve(Number.isFinite(sec) ? sec : null)
+        })
+    })
+}
+
+async function handleUploadVideo(req, res) {
+    try {
+        const file = req.file
+        const userId = req.user._id
+
+        if(!file) {
+            return res.status(400).json({ error: "Aucune video n'a été reçue" })
+        }
+
+        const url = `http://localhost:3000/uploads/videos/${file.filename}`
+
+        const videoDuration = await ffprobeDuration(file.path)
+
+        const video = await convoService.uploadVideo({
+            userId,
+            name: file.originalname,
+            url,
+            size: file.size,
+            format: file.mimetype,
+            videoDuration
+        })
+
+        res.status(201).json(video)
+    }
+    catch(err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleUploadVideo] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
+async function handleDeleteVideo(req, res) {
+    try {
+        const videoId = req.params.videoId
+
+        const result = await convoService.deleteVideo(videoId)
+
+        res.status(200).josn({
+            message: "Video supprimée",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleDeleteVideo] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     getHistory,
     getMessages,
     handleDeleteMessage,
     handleModifyMessage,
     handleUploadPhoto,
-    handleDeletePhoto
+    handleDeletePhoto,
+    handleUploadVideo,
+    handleDeleteVideo
 }
