@@ -13,6 +13,6 @@ router.put("/modify/:messageId", isAuth, chatController.handleModifyMessage)
 router.post("/upload", upload.single("photo"), isAuth, chatController.handleUploadPhoto)
 router.delete("/deletePhoto/:photoId", isAuth, chatController.handleDeletePhoto)
 router.post("/uploadVideo", isAuth, uploadVideo.single("video"), chatController.handleUploadVideo, gererErreurUpload)
-router.delete("/deleteVideo", isAuth, chatController.handleDeleteVideo)
+router.delete("/deleteVideo/:videoId", isAuth, chatController.handleDeleteVideo)
 
 module.exports = router

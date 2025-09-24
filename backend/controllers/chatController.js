@@ -322,7 +322,7 @@ async function handleDeleteVideo(req, res) {
 
         const result = await convoService.deleteVideo(videoId)
 
-        res.status(200).josn({
+        res.status(200).json({
             message: "Video supprimée",
             data: result
         })

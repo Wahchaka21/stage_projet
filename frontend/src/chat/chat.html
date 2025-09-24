@@ -29,14 +29,23 @@
                     [class.bg-[#315f92]]="m.me" [class.text-white]="m.me" [class.rounded-br-sm]="m.me"
                     [class.bg-[#e9eef7]]="!m.me" [class.text-gray-900]="!m.me" [class.rounded-bl-sm]="!m.me"
                     (click)="openActionModal(i, m.id)">
-                    <ng-container *ngIf="!m.photoUrl; else photoMessage">
+                    <ng-container *ngIf="m.photoUrl; else nonPhotoMessage">
+                        <img [src]="m.photoUrl" alt="Photo envoyee" loading="lazy"
+                            class="block max-h-64 w-full rounded-xl object-cover" />
+                    </ng-container>
+                    <ng-template #nonPhotoMessage>
+                        <ng-container *ngIf="m.videoUrl; else textMessage">
+                            <a [href]="m.videoUrl" target="_blank" rel="noopener" download
+                                class="flex items-center gap-2 text-[13px] leading-snug underline"
+                                (click)="handleVideoLinkClick($event, i, m.id, m.me)">
+                                {{ m.videoName || 'Télécharger la vidéo' }}
+                            </a>
+                        </ng-container>
+                    </ng-template>
+                    <ng-template #textMessage>
                         <p class="text-[13px] leading-snug whitespace-pre-wrap break-words">
                             {{ m.text }}
                         </p>
-                    </ng-container>
-                    <ng-template #photoMessage>
-                        <img [src]="m.photoUrl" alt="Photo envoyee" loading="lazy"
-                            class="block max-h-64 w-full rounded-xl object-cover" />
                     </ng-template>
                 </div>
             </div>
@@ -60,7 +69,7 @@
                 <div class="border-t border-gray-100"></div>
 
                 <div class="p-2 flex flex-col">
-                    <button *ngIf="!selectedMessageHasPhoto" type="button"
+                    <button *ngIf="!selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="copierMessageSelectionne()">
                         Copier le texte
@@ -78,13 +87,25 @@
                         Supprimer la photo
                     </button>
 
-                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto" type="button"
+                    <button *ngIf="selectedMessageHasVideo" type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
+                        (click)="downloadSelectedVideo()">
+                        Télécharger la vidéo
+                    </button>
+
+                    <button *ngIf="selectedIsMine && selectedMessageHasVideo" type="button"
+                        class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
+                        (click)="confirmDeleteVideo()">
+                        Supprimer la vidéo
+                    </button>
+
+                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="ouvrirEditionMessage()">
                         Modifier le message
                     </button>
 
-                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto" type="button"
+                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDelete()">
                         Supprimer le message
@@ -148,11 +169,12 @@
                         class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                         (click)="openPhotoPicker()">Ajouter une photo</button>
                     <button type="button"
-                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-400 hover:bg-gray-100"
-                        (click)="closeAttachmentMenu()">Ajouter une video</button>
+                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                        (click)="openVideoPicker()">Ajouter une video</button>
                 </div>
 
                 <input #photoInput type="file" accept="image/*" class="hidden" (change)="handleUploadPhoto($event)" />
+                <input #videoInput type="file" accept="video/*" class="hidden" (change)="handleUploadVideo($event)" />
             </div>
 
             <input [ngModel]="input()" (ngModelChange)="input.set($event)" name="msg"

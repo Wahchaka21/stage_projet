@@ -448,7 +448,7 @@ async function deleteVideo(videoId) {
             __dirname,
             "..",
             "uploads",
-            "video",
+            "videos",
             filename
         )
 
