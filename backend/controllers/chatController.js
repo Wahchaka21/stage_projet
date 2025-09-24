@@ -345,6 +345,39 @@ async function handleDeleteVideo(req, res) {
     }
 }
 
+async function getVideoInfo(req, res) {
+    try {
+        const videoId = req.params.videoId
+
+        const video = await convoService.getVideo(videoId)
+
+        res.status(200).json({
+            videoId: String(video._id),
+            name: video.name,
+            url: video.url,
+            size: video.size,
+            format: video.format,
+            videoDuration: video.videoDuration
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[getVideoInfo] erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     getHistory,
     getMessages,
@@ -353,5 +386,6 @@ module.exports = {
     handleUploadPhoto,
     handleDeletePhoto,
     handleUploadVideo,
-    handleDeleteVideo
+    handleDeleteVideo,
+    getVideoInfo
 }

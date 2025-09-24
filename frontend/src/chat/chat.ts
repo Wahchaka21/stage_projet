@@ -55,6 +55,8 @@ export class Chat implements OnInit, OnDestroy {
   private readonly photoPrefix: string = '[[photo]]'
   private videoIdByUrl: Record<string, string> = {}
   private readonly videoPrefix: string = '[[video]]'
+  private videoNameCache: Record<string, string> = {}
+  private pendingVideoFetch: Set<string> = new Set<string>()
 
   constructor(
     private route: ActivatedRoute,
@@ -164,6 +166,7 @@ export class Chat implements OnInit, OnDestroy {
 
             const uiItem = this.buildUiMessage(msg, isMe, at, id)
             this.messages.push(uiItem)
+            this.ensureVideoNameForMessage(uiItem)
           }
 
           //scroller aprÃ¨s rendu
@@ -211,6 +214,7 @@ export class Chat implements OnInit, OnDestroy {
 
           const uiItem = this.buildUiMessage(msg, isMe, at, id)
           this.messages.push(uiItem)
+          this.ensureVideoNameForMessage(uiItem)
 
           queueMicrotask(() => this.scrollToBottom())
         })
@@ -258,6 +262,7 @@ export class Chat implements OnInit, OnDestroy {
 
           const uiItem = this.buildUiMessage(msg, isMe, at, id)
           this.messages.push(uiItem)
+          this.ensureVideoNameForMessage(uiItem)
 
           queueMicrotask(() => this.scrollToBottom())
         })
@@ -355,24 +360,34 @@ export class Chat implements OnInit, OnDestroy {
         }
       }
 
-      let finalVideoName: string | null = null
-      if (videoInfo.name) {
-        finalVideoName = videoInfo.name
+      if (finalVideoId) {
+        this.videoIdByUrl[videoInfo.url] = finalVideoId
       }
-      else {
-        try {
-          const parsed = new URL(videoInfo.url)
-          const base = parsed.pathname.split('/').pop()
-          if (base) {
-            finalVideoName = decodeURIComponent(base)
-          }
+
+      let finalVideoName: string | null = null
+      let providedName = ""
+      if (videoInfo.name && videoInfo.name.trim().length > 0) {
+        providedName = videoInfo.name.trim()
+      }
+      if (providedName) {
+        finalVideoName = providedName
+        if (finalVideoId) {
+          this.videoNameCache[finalVideoId] = providedName
         }
-        catch (err) {
-          const fallback = videoInfo.url.split('/').pop()
-          if (fallback) {
-            finalVideoName = fallback
-          }
+        else if (videoInfo.videoId) {
+          this.videoNameCache[videoInfo.videoId] = providedName
         }
+      }
+
+      if (!finalVideoName && finalVideoId) {
+        const cached = this.videoNameCache[finalVideoId]
+        if (cached && cached.trim().length > 0) {
+          finalVideoName = cached
+        }
+      }
+
+      if (!finalVideoName) {
+        finalVideoName = this.extractFileNameFromUrl(videoInfo.url)
       }
 
       return {
@@ -618,6 +633,11 @@ export class Chat implements OnInit, OnDestroy {
           delete this.videoIdByUrl[existing.videoUrl]
         }
       }
+      if (existing?.videoId) {
+        if (this.videoNameCache[existing.videoId]) {
+          delete this.videoNameCache[existing.videoId]
+        }
+      }
       this.messages = this.messages.filter(m => m.id !== messageId)
       if (this.previewPhotoMessageId === messageId) {
         this.cancelPhotoPreview()
@@ -708,6 +728,152 @@ export class Chat implements OnInit, OnDestroy {
       console.error('[downloadSelectedVideo] impossible d\'ouvrir la video :', err)
     }
     this.closeActionModal()
+  }
+
+  private ensureVideoNameForMessage(message: UiMessage): void {
+    if (!message) {
+      return
+    }
+
+    if (!message.videoId) {
+      return
+    }
+
+    const cached = this.videoNameCache[message.videoId]
+    if (cached && cached.trim().length > 0) {
+      if (message.videoName !== cached) {
+        this.updateMessagesVideoName(message.videoId, cached)
+      }
+      return
+    }
+
+    this.requestVideoNameFetch(message.videoId)
+  }
+
+  private updateMessagesVideoName(videoId: string, name: string): void {
+    if (!videoId) {
+      return
+    }
+
+    const trimmed = name.trim()
+    if (!trimmed) {
+      return
+    }
+
+    let updated = false
+    for (let i = 0; i < this.messages.length; i++) {
+      const current = this.messages[i]
+      if (current && current.videoId === videoId) {
+        if (current.videoName !== trimmed) {
+          this.messages[i] = {
+            ...current,
+            videoName: trimmed
+          }
+          updated = true
+        }
+      }
+    }
+
+    if (updated) {
+      this.messages = [...this.messages]
+    }
+
+    if (this.selectedVideoId === videoId) {
+      if (this.selectedMessageHasVideo) {
+        // no additional state for now, kept for extensibility
+      }
+    }
+  }
+
+  private requestVideoNameFetch(videoId: string): void {
+    if (!videoId) {
+      return
+    }
+
+    const cached = this.videoNameCache[videoId]
+    if (cached && cached.trim().length > 0) {
+      this.updateMessagesVideoName(videoId, cached)
+      return
+    }
+
+    if (this.pendingVideoFetch.has(videoId)) {
+      return
+    }
+
+    this.pendingVideoFetch.add(videoId)
+
+    this.http.get<any>(`http://localhost:3000/chat/video/${videoId}`, {
+      withCredentials: true
+    }).subscribe({
+      next: (res) => {
+        let resolvedName = ""
+        if (res && typeof res === 'object') {
+          if (typeof res.name === 'string' && res.name.trim().length > 0) {
+            resolvedName = res.name.trim()
+          }
+          else if (res.video && typeof res.video.name === 'string' && res.video.name.trim().length > 0) {
+            resolvedName = res.video.name.trim()
+          }
+
+          if (typeof res.url === 'string' && res.url.trim().length > 0) {
+            this.videoIdByUrl[res.url.trim()] = videoId
+          }
+        }
+
+        if (resolvedName) {
+          this.videoNameCache[videoId] = resolvedName
+          this.updateMessagesVideoName(videoId, resolvedName)
+        }
+      },
+      error: (err) => {
+        console.error('[requestVideoNameFetch] erreur :', err)
+        this.pendingVideoFetch.delete(videoId)
+      },
+      complete: () => {
+        this.pendingVideoFetch.delete(videoId)
+      }
+    })
+  }
+
+  private extractFileNameFromUrl(url: string): string | null {
+    if (!url) {
+      return null
+    }
+
+    try {
+      const parsed = new URL(url)
+      const lastSegment = parsed.pathname.split('/').pop()
+      if (lastSegment && lastSegment.trim().length > 0) {
+        return decodeURIComponent(lastSegment)
+      }
+    }
+    catch (err) {
+      // fallback below
+    }
+
+    const rawParts = url.split('/')
+    if (rawParts.length === 0) {
+      return null
+    }
+
+    const candidate = rawParts[rawParts.length - 1]
+    if (!candidate) {
+      return null
+    }
+
+    try {
+      const decoded = decodeURIComponent(candidate)
+      if (decoded.trim().length > 0) {
+        return decoded
+      }
+    }
+    catch (err) {
+      if (candidate.trim().length > 0) {
+        return candidate
+      }
+    }
+
+    return null
   }
 
   handleVideoLinkClick(event: MouseEvent, index: number, messageId: string, isMine: boolean | null | undefined): void {
@@ -1200,6 +1366,10 @@ export class Chat implements OnInit, OnDestroy {
         this.videoIdByUrl[url] = videoId
       }
 
+      if (videoId && videoName) {
+        this.videoNameCache[videoId] = videoName
+      }
+
       const segments: string[] = []
       if (videoId) {
         segments.push(videoId)
@@ -1246,6 +1416,13 @@ export class Chat implements OnInit, OnDestroy {
             delete this.videoIdByUrl[key]
           }
         }
+      }
+
+      if (this.videoNameCache[videoId]) {
+        delete this.videoNameCache[videoId]
+      }
+      if (this.pendingVideoFetch.has(videoId)) {
+        this.pendingVideoFetch.delete(videoId)
       }
     }
     catch (err) {

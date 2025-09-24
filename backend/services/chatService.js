@@ -422,6 +422,27 @@ async function uploadVideo(videoData) {
     }
 }
 
+async function getVideo(videoId) {
+    try {
+        if (!videoId || !isValideObjectId(videoId)) {
+            throw persoError('INVALID_ID', 'Identifiant video invalide', { videoId })
+        }
+
+        const video = await videoSchema.findById(videoId).lean()
+        if (!video) {
+            throw persoError('NOT_FOUND', 'Video introuvable', { videoId })
+        }
+
+        return video
+    }
+    catch (err) {
+        if (err?.type) {
+            throw err
+        }
+        throw persoError('DB_ERROR', 'Erreur récupération video', { original: err.message })
+    }
+}
+
 async function deleteVideo(videoId) {
     try {
         if(!videoId || !isValideObjectId(videoId)) {
@@ -484,6 +505,7 @@ module.exports = {
     modifyMessage,
     uploadPhoto,
     deletePhoto,
+    getVideo,
     uploadVideo,
     deleteVideo
 }
