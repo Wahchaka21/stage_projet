@@ -9,6 +9,8 @@ import { DeleteMessageService } from '../chat/delete-message.service';
 import { modifyMessageService } from '../chat/modify-message.service';
 import { AddPhotoService } from '../chat/add-photo.service';
 import { DeletePhotoService } from '../chat/delete-photo.service';
+import { AddVideoService } from '../chat/add-video.service';
+import { DeleteVideoService } from '../chat/delete-video.service';
 
 type AdminUser = {
   _id: string
@@ -24,8 +26,11 @@ type UiMessage = {
   text: string
   at: string
   updatedAt?: string
-  photoUrl?: string | null
-  photoId?: string | null
+  photoUrl: string | null
+  photoId: string | null
+  videoUrl: string | null
+  videoId: string | null
+  videoName: string | null
 }
 
 @Component({
@@ -51,13 +56,18 @@ export class Admin implements OnInit, OnDestroy {
   messagesError: string | null = null     // message d'erreur affiché dans la zone messages
   messageDraft = ""                       // contenu du textarea d'envoi
   showAttachmentMenu = false
-  @ViewChild('photoInput') photoInput?: ElementRef<HTMLInputElement>
+  @ViewChild('photoInput') photoInput: ElementRef<HTMLInputElement> | undefined = undefined
+  @ViewChild('videoInput') videoInput: ElementRef<HTMLInputElement> | undefined = undefined
   photoPreviewUrl: string | null = null
   previewPhotoId: string | null = null
   previewPhotoMessageId: string | null = null
   previewPhotoIsMine = false
   private photoIdByUrl: Record<string, string> = {}
   private readonly photoPrefix = '[[photo]]'
+  private videoIdByUrl: Record<string, string> = {}
+  private readonly videoPrefix = '[[video]]'
+  private videoNameCache: Record<string, string> = {}
+  private pendingVideoFetch: Set<string> = new Set<string>()
 
   // --- Édition d'un message
   editMessageId: string | null = null     // id du message en cours d'édition (si mode édition actif)
@@ -78,7 +88,9 @@ export class Admin implements OnInit, OnDestroy {
     private deleteService: DeleteMessageService,
     private modifyService: modifyMessageService,
     private addPhotoService: AddPhotoService,
-    private deletePhotoService: DeletePhotoService
+    private deletePhotoService: DeletePhotoService,
+    private addVideoService: AddVideoService,
+    private deleteVideoService: DeleteVideoService
   ) { }
 
   ngOnInit(): void {
@@ -95,6 +107,7 @@ export class Admin implements OnInit, OnDestroy {
     else {
       this.chatService.disconnect()
     }
+    this.pendingVideoFetch.clear()
   }
 
   // Nom affiché pour un utilisateur (name > nickname > email > fallback)
@@ -243,6 +256,17 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
+  openVideoPicker(): void {
+    this.closeAttachmentMenu()
+    if (this.videoInput) {
+      const element = this.videoInput.nativeElement
+      if (element) {
+        element.value = ""
+        element.click()
+      }
+    }
+  }
+
   async handleUploadPhoto(event: Event): Promise<void> {
     this.messagesError = null
     const input = event.target as HTMLInputElement
@@ -253,7 +277,10 @@ export class Admin implements OnInit, OnDestroy {
     this.closeAttachmentMenu()
 
     const fileList = input.files
-    const file = fileList && fileList.length > 0 ? fileList[0] : null
+    let file: File | null = null
+    if (fileList && fileList.length > 0) {
+      file = fileList[0]
+    }
     if (!file) {
       return
     }
@@ -269,7 +296,12 @@ export class Admin implements OnInit, OnDestroy {
       } else if (result && result.photo && typeof result.photo.url === 'string') {
         url = result.photo.url
       }
-      url = url ? String(url).trim() : ''
+      if (url) {
+        url = String(url).trim()
+      }
+      else {
+        url = ''
+      }
 
       if (!url) {
         this.messagesError = "URL photo manquante"
@@ -305,6 +337,101 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
+  async handleUploadVideo(event: Event): Promise<void> {
+    this.messagesError = null
+    const input = event.target as HTMLInputElement
+    if (!input) {
+      return
+    }
+
+    this.closeAttachmentMenu()
+
+    const fileList = input.files
+    let file: File | null = null
+    if (fileList && fileList.length > 0) {
+      file = fileList[0]
+    }
+    if (!file) {
+      return
+    }
+
+    try {
+      const result: any = await this.addVideoService.addVideo(file)
+
+      let url = ''
+      if (result && typeof result.url === 'string') {
+        url = result.url
+      }
+      else if (result && result.data && typeof result.data.url === 'string') {
+        url = result.data.url
+      }
+      else if (result && result.video && typeof result.video.url === 'string') {
+        url = result.video.url
+      }
+      if (url) {
+        url = String(url).trim()
+      }
+      else {
+        url = ''
+      }
+
+      if (!url) {
+        this.messagesError = "URL video manquante"
+        return
+      }
+
+      let videoName = ''
+      const nameCandidates = [
+        file?.name,
+        result?.name,
+        result?.data?.name,
+        result?.video?.name
+      ]
+      for (const candidate of nameCandidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+          videoName = candidate.trim()
+          break
+        }
+      }
+
+      const videoId = this.resolveVideoIdFromResponse(result)
+      if (videoId) {
+        this.videoIdByUrl[url] = videoId
+        if (videoName) {
+          this.videoNameCache[videoId] = videoName
+        }
+      }
+
+      const segments: string[] = []
+      if (videoId) {
+        segments.push(videoId)
+      }
+      segments.push(url)
+      if (videoName) {
+        segments.push(encodeURIComponent(videoName))
+      }
+
+      const payload = this.videoPrefix + segments.join('::')
+
+      const ok = this.chatService.send(payload)
+      if (!ok) {
+        this.messagesError = "Impossible d'envoyer la video"
+      }
+      else {
+        this.scheduleScroll()
+      }
+    }
+    catch (err) {
+      this.messagesError = "Erreur lors de l'envoi de la video"
+      console.error(err)
+    }
+    finally {
+      if (input) {
+        input.value = ''
+      }
+    }
+  }
+
   private async handleDeletePhoto(photoId: string, photoUrl?: string): Promise<void> {
     try {
       await this.deletePhotoService.deletePhoto(photoId)
@@ -314,6 +441,25 @@ export class Admin implements OnInit, OnDestroy {
     }
     catch (err) {
       this.messagesError = "Erreur lors de la suppression de la photo"
+      console.error(err)
+    }
+  }
+
+  private async handleDeleteVideo(videoId: string, videoUrl: string | null = null): Promise<void> {
+    try {
+      await this.deleteVideoService.deleteVideo(videoId)
+      if (videoUrl && this.videoIdByUrl[videoUrl]) {
+        delete this.videoIdByUrl[videoUrl]
+      }
+      if (this.videoNameCache[videoId]) {
+        delete this.videoNameCache[videoId]
+      }
+      if (this.pendingVideoFetch.has(videoId)) {
+        this.pendingVideoFetch.delete(videoId)
+      }
+    }
+    catch (err) {
+      this.messagesError = "Erreur lors de la suppression de la video"
       console.error(err)
     }
   }
@@ -384,6 +530,157 @@ export class Admin implements OnInit, OnDestroy {
     this.openPhotoPreview(message.photoUrl, message.id, photoId, message.me)
   }
 
+  downloadVideo(message: UiMessage): void {
+    if (!message || !message.videoUrl) {
+      return
+    }
+
+    try {
+      window.open(message.videoUrl, '_blank', 'noopener')
+    }
+    catch (err) {
+      console.error('[downloadVideo] impossible d\'ouvrir la video :', err)
+    }
+  }
+
+  private ensureVideoNameForMessage(message: UiMessage): void {
+    if (!message) {
+      return
+    }
+
+    if (!message.videoId) {
+      return
+    }
+
+    const cached = this.videoNameCache[message.videoId]
+    if (cached && cached.trim().length > 0) {
+      if (message.videoName !== cached) {
+        this.updateMessagesVideoName(message.videoId, cached)
+      }
+      return
+    }
+
+    this.requestVideoNameFetch(message.videoId)
+  }
+
+  private updateMessagesVideoName(videoId: string, name: string): void {
+    if (!videoId) {
+      return
+    }
+
+    const trimmed = name.trim()
+    if (!trimmed) {
+      return
+    }
+
+    let changed = false
+    for (let i = 0; i < this.messages.length; i++) {
+      const entry = this.messages[i]
+      if (entry && entry.videoId === videoId) {
+        if (entry.videoName !== trimmed) {
+          this.messages[i] = {
+            ...entry,
+            videoName: trimmed
+          }
+          changed = true
+        }
+      }
+    }
+
+    if (changed) {
+      this.messages = [...this.messages]
+    }
+  }
+
+  private requestVideoNameFetch(videoId: string): void {
+    if (!videoId) {
+      return
+    }
+
+    const cached = this.videoNameCache[videoId]
+    if (cached && cached.trim().length > 0) {
+      this.updateMessagesVideoName(videoId, cached)
+      return
+    }
+
+    if (this.pendingVideoFetch.has(videoId)) {
+      return
+    }
+
+    this.pendingVideoFetch.add(videoId)
+
+    this.http.get<any>(`${this.api}/chat/video/${videoId}`, { withCredentials: true }).subscribe({
+      next: (res) => {
+        let resolvedName = ''
+        if (res && typeof res === 'object') {
+          if (typeof res.name === 'string' && res.name.trim().length > 0) {
+            resolvedName = res.name.trim()
+          }
+          else if (res.video && typeof res.video.name === 'string' && res.video.name.trim().length > 0) {
+            resolvedName = res.video.name.trim()
+          }
+
+          if (typeof res.url === 'string' && res.url.trim().length > 0) {
+            this.videoIdByUrl[res.url.trim()] = videoId
+          }
+        }
+
+        if (resolvedName) {
+          this.videoNameCache[videoId] = resolvedName
+          this.updateMessagesVideoName(videoId, resolvedName)
+        }
+      },
+      error: (err) => {
+        console.error('[requestVideoNameFetch] erreur :', err)
+        this.pendingVideoFetch.delete(videoId)
+      },
+      complete: () => {
+        this.pendingVideoFetch.delete(videoId)
+      }
+    })
+  }
+
+  private extractFileNameFromUrl(url: string | null): string | null {
+    if (!url) {
+      return null
+    }
+
+    try {
+      const parsed = new URL(url)
+      const lastSegment = parsed.pathname.split('/').pop()
+      if (lastSegment && lastSegment.trim().length > 0) {
+        return decodeURIComponent(lastSegment)
+      }
+    }
+    catch (err) {
+      // fallback below
+    }
+
+    const parts = url.split('/')
+    if (parts.length === 0) {
+      return null
+    }
+
+    const candidate = parts[parts.length - 1]
+    if (!candidate) {
+      return null
+    }
+
+    try {
+      const decoded = decodeURIComponent(candidate)
+      if (decoded.trim().length > 0) {
+        return decoded
+      }
+    }
+    catch (err) {
+      if (candidate.trim().length > 0) {
+        return candidate
+      }
+    }
+
+    return null
+  }
+
 
   // Ouvre le mode édition pour un message
   openEdit(message: UiMessage): void {
@@ -392,6 +689,10 @@ export class Admin implements OnInit, OnDestroy {
     }
 
     if (message.photoUrl) {
+      return
+    }
+
+    if (message.videoUrl) {
       return
     }
 
@@ -457,6 +758,8 @@ export class Admin implements OnInit, OnDestroy {
 
     let photoId: string | null = null
     let photoUrl: string | null = null
+    let videoId: string | null = null
+    let videoUrl: string | null = null
     if (target) {
       if (target.photoId) {
         photoId = target.photoId
@@ -464,12 +767,25 @@ export class Admin implements OnInit, OnDestroy {
       if (target.photoUrl) {
         photoUrl = target.photoUrl
       }
+      if (target.videoId) {
+        videoId = target.videoId
+      }
+      if (target.videoUrl) {
+        videoUrl = target.videoUrl
+      }
     }
 
     if (!photoId && photoUrl) {
       const known = this.photoIdByUrl[photoUrl]
       if (known) {
         photoId = known
+      }
+    }
+
+    if (!videoId && videoUrl) {
+      const knownVideo = this.videoIdByUrl[videoUrl]
+      if (knownVideo) {
+        videoId = knownVideo
       }
     }
 
@@ -482,11 +798,33 @@ export class Admin implements OnInit, OnDestroy {
         await this.handleDeletePhoto(photoId, photoUrlValue)
       }
 
+      if (videoId) {
+        let videoUrlValue: string | null = null
+        if (videoUrl) {
+          videoUrlValue = videoUrl
+        }
+        await this.handleDeleteVideo(videoId, videoUrlValue)
+      }
+
       await this.deleteService.deleteMessage(messageId)
       const remaining: UiMessage[] = []
       for (const entry of this.messages) {
         if (entry.id !== messageId) {
           remaining.push(entry)
+        }
+        else {
+          if (entry.photoUrl && this.photoIdByUrl[entry.photoUrl]) {
+            delete this.photoIdByUrl[entry.photoUrl]
+          }
+          if (entry.videoUrl && this.videoIdByUrl[entry.videoUrl]) {
+            delete this.videoIdByUrl[entry.videoUrl]
+          }
+          if (entry.videoId && this.videoNameCache[entry.videoId]) {
+            delete this.videoNameCache[entry.videoId]
+          }
+          if (entry.videoId && this.pendingVideoFetch.has(entry.videoId)) {
+            this.pendingVideoFetch.delete(entry.videoId)
+          }
         }
       }
       this.messages = remaining
@@ -525,6 +863,10 @@ export class Admin implements OnInit, OnDestroy {
     }
 
     if (target.photoUrl) {
+      return
+    }
+
+    if (target.videoUrl) {
       return
     }
 
@@ -671,6 +1013,7 @@ export class Admin implements OnInit, OnDestroy {
             const mapped = this.mapMessage(raw)
             if (mapped.id) {
               this.messages.push(mapped)
+              this.ensureVideoNameForMessage(mapped)
             }
           }
         }
@@ -702,6 +1045,9 @@ export class Admin implements OnInit, OnDestroy {
     this.editError = null
     this.showAttachmentMenu = false
     this.photoIdByUrl = {}
+    this.videoIdByUrl = {}
+    this.videoNameCache = {}
+    this.pendingVideoFetch.clear()
     this.cancelPhotoPreview()
   }
 
@@ -724,7 +1070,10 @@ export class Admin implements OnInit, OnDestroy {
           at: mapped.at,
           updatedAt: mapped.updatedAt,
           photoUrl: mapped.photoUrl,
-          photoId: mapped.photoId
+          photoId: mapped.photoId,
+          videoUrl: mapped.videoUrl,
+          videoId: mapped.videoId,
+          videoName: mapped.videoName
         }
         alreadyThere = true
         break
@@ -734,6 +1083,8 @@ export class Admin implements OnInit, OnDestroy {
     if (!alreadyThere) {
       this.messages.push(mapped)
     }
+
+    this.ensureVideoNameForMessage(mapped)
 
     if (stickToBottom) {
       this.scheduleScroll()
@@ -768,11 +1119,54 @@ export class Admin implements OnInit, OnDestroy {
     const me = this.isFromMe(msg)          // me = true si message.userId === admin._id
     const rawText = this.extractText(msg)  // force en string
 
+    const videoInfo = this.extractVideoData(rawText)
     const photoInfo = this.extractPhotoData(rawText)
 
     let text = rawText
     let photoUrl: string | null = null
     let photoId: string | null = null
+    let videoUrl: string | null = null
+    let videoId: string | null = null
+    let videoName: string | null = null
+
+    if (videoInfo) {
+      text = ""
+      videoUrl = videoInfo.url
+      if (videoInfo.videoId) {
+        videoId = videoInfo.videoId
+        this.videoIdByUrl[videoInfo.url] = videoInfo.videoId
+      }
+      if (!videoId && videoUrl) {
+        const knownVideo = this.videoIdByUrl[videoUrl]
+        if (knownVideo) {
+          videoId = knownVideo
+        }
+      }
+
+      if (videoInfo.name && videoInfo.name.trim().length > 0) {
+        videoName = videoInfo.name.trim()
+        if (videoId) {
+          this.videoNameCache[videoId] = videoName
+        }
+      }
+      else if (videoId) {
+        const cached = this.videoNameCache[videoId]
+        if (cached && cached.trim().length > 0) {
+          videoName = cached
+        }
+      }
+
+      if (!videoName && videoUrl) {
+        const extracted = this.extractFileNameFromUrl(videoUrl)
+        if (extracted) {
+          videoName = extracted
+        }
+      }
+
+      if (videoId && videoUrl) {
+        this.videoIdByUrl[videoUrl] = videoId
+      }
+    }
 
     if (photoInfo) {
       text = ""
@@ -809,7 +1203,10 @@ export class Admin implements OnInit, OnDestroy {
       text,
       at,
       photoUrl,
-      photoId
+      photoId,
+      videoUrl,
+      videoId,
+      videoName
     }
 
     if (updatedAt.length > 0) {
@@ -920,6 +1317,128 @@ export class Admin implements OnInit, OnDestroy {
     }
 
     return null
+  }
+
+  private resolveVideoIdFromResponse(result: any): string | null {
+    if (!result) {
+      return null
+    }
+
+    const candidates: any[] = [result]
+
+    if (result && typeof result === 'object') {
+      if ('data' in result) {
+        candidates.push((result as any).data)
+      }
+      if ('video' in result) {
+        candidates.push((result as any).video)
+      }
+    }
+
+    for (const item of candidates) {
+      if (!item || typeof item !== 'object') {
+        continue
+      }
+
+      const candidate: any = item as any
+      if (typeof candidate._id === 'string') {
+        const trimmed = candidate._id.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+      }
+      if (typeof candidate.id === 'string') {
+        const trimmed = candidate.id.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+      }
+
+      const inner = candidate._id
+      if (inner && typeof inner === 'object') {
+        if (typeof (inner as any).$oid === 'string') {
+          const trimmed = (inner as any).$oid.trim()
+          if (trimmed.length > 0) {
+            return trimmed
+          }
+        }
+
+        if (typeof inner.toString === 'function') {
+          const converted = String(inner.toString()).trim()
+          if (converted.length > 0 && converted !== '[object Object]') {
+            return converted
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
+  private extractVideoData(text: string): { url: string, videoId: string | null, name: string | null } | null {
+    if (!text) {
+      return null
+    }
+
+    const markerIndex = text.indexOf(this.videoPrefix)
+    if (markerIndex === -1) {
+      return null
+    }
+
+    const payload = text.substring(markerIndex + this.videoPrefix.length).trim()
+    if (!payload) {
+      return null
+    }
+
+    const parts = payload.split('::')
+
+    let videoId: string | null = null
+    let urlPart: string | null = null
+    let namePart: string | null = null
+
+    if (parts.length === 1) {
+      const candidate = parts[0]
+      if (candidate && candidate.startsWith('http')) {
+        urlPart = candidate
+      }
+    }
+    else if (parts.length >= 2) {
+      const first = parts[0]
+      const second = parts[1]
+
+      if (first && first.startsWith('http')) {
+        urlPart = first
+        namePart = parts.slice(1).join('::')
+      }
+      else {
+        if (first) {
+          videoId = first
+        }
+        else {
+          videoId = null
+        }
+        urlPart = second
+        if (parts.length >= 3) {
+          namePart = parts.slice(2).join('::')
+        }
+      }
+    }
+
+    if (!urlPart || !urlPart.startsWith('http')) {
+      return null
+    }
+
+    let decodedName: string | null = null
+    if (namePart) {
+      try {
+        decodedName = decodeURIComponent(namePart)
+      }
+      catch (err) {
+        decodedName = namePart
+      }
+    }
+
+    return { url: urlPart, videoId, name: decodedName }
   }
 
 

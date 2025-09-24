@@ -5,6 +5,10 @@ import { Admin } from './admin';
 import { ChatService } from '../chat/chat.service';
 import { DeleteMessageService } from '../chat/delete-message.service';
 import { modifyMessageService } from '../chat/modify-message.service';
+import { AddPhotoService } from '../chat/add-photo.service';
+import { DeletePhotoService } from '../chat/delete-photo.service';
+import { AddVideoService } from '../chat/add-video.service';
+import { DeleteVideoService } from '../chat/delete-video.service';
 
 class ChatServiceMock {
   private subject = new Subject<any>()
@@ -41,6 +45,30 @@ class ModifyMessageServiceMock {
   }
 }
 
+class AddPhotoServiceMock {
+  addPhoto(): Promise<any> {
+    return Promise.resolve({ url: 'http://localhost/test.jpg', _id: 'photo123' })
+  }
+}
+
+class DeletePhotoServiceMock {
+  deletePhoto(): Promise<void> {
+    return Promise.resolve()
+  }
+}
+
+class AddVideoServiceMock {
+  addVideo(): Promise<any> {
+    return Promise.resolve({ url: 'http://localhost/test.mp4', _id: 'video123', name: 'test.mp4' })
+  }
+}
+
+class DeleteVideoServiceMock {
+  deleteVideo(): Promise<void> {
+    return Promise.resolve()
+  }
+}
+
 describe('Admin', () => {
   let component: Admin
   let fixture: ComponentFixture<Admin>
@@ -51,7 +79,11 @@ describe('Admin', () => {
       providers: [
         { provide: ChatService, useClass: ChatServiceMock },
         { provide: DeleteMessageService, useClass: DeleteMessageServiceMock },
-        { provide: modifyMessageService, useClass: ModifyMessageServiceMock }
+        { provide: modifyMessageService, useClass: ModifyMessageServiceMock },
+        { provide: AddPhotoService, useClass: AddPhotoServiceMock },
+        { provide: DeletePhotoService, useClass: DeletePhotoServiceMock },
+        { provide: AddVideoService, useClass: AddVideoServiceMock },
+        { provide: DeleteVideoService, useClass: DeleteVideoServiceMock }
       ]
     }).compileComponents()
 
