@@ -13,6 +13,7 @@ import { AddVideoService } from '../chat/add-video.service';
 import { DeleteVideoService } from '../chat/delete-video.service';
 import { PhotoFeature } from '../chat/photo/photo'
 import { VideoFeature } from '../chat/video/video'
+import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
 
 type AdminUser = {
   _id: string
@@ -94,7 +95,7 @@ export class Admin implements OnInit, OnDestroy {
       () => this.closeAttachmentMenu(),
       (messageId: string) => this.deleteMessage(messageId),
       (value: string | null | undefined) => this.isLikelyObjectId(value),
-      () => this.messages
+      () => { }
     )
 
     this.videoFeature = new VideoFeature(
@@ -576,24 +577,15 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    const el = document.getElementById('adminMessages')
-    if (!el) {
-      return
-    }
-    el.scrollTop = el.scrollHeight
+    scrollToBottomById("adminMessages")
   }
 
   private scheduleScroll(): void {
-    requestAnimationFrame(() => this.scrollToBottom())
+    scheduleScrollById("adminMessages")
   }
 
   private shouldStickToBottom(): boolean {
-    const el = document.getElementById('adminMessages')
-    if (!el) {
-      return true
-    }
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-    return distance < 120
+    return shouldStickToBottomById("adminMessages")
   }
 
   async copyMessage(messageId: string): Promise<void> {

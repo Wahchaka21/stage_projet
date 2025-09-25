@@ -12,6 +12,7 @@ import { AddVideoService } from './add-video.service';
 import { DeleteVideoService } from './delete-video.service';
 import { PhotoFeature } from './photo/photo';
 import { VideoFeature } from './video/video';
+import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
 
 export type UiMessage = {
   id: string
@@ -40,9 +41,11 @@ export class Chat implements OnInit, OnDestroy {
   editMessageId: string | null = null
   selectedIsMine: boolean = false
   showAttachmentMenu: boolean = false
+  confirmOpen = false
+  confirmKind: "message" | "photo" | "video" | "photo-preview" | null = null
 
-  @ViewChild('photoInput') photoInput: ElementRef<HTMLInputElement> | undefined = undefined
-  @ViewChild('videoInput') videoInput: ElementRef<HTMLInputElement> | undefined = undefined
+  @ViewChild("photoInput") photoInput: ElementRef<HTMLInputElement> | undefined = undefined
+  @ViewChild("videoInput") videoInput: ElementRef<HTMLInputElement> | undefined = undefined
 
   photoFeature: PhotoFeature
   videoFeature: VideoFeature
@@ -62,7 +65,7 @@ export class Chat implements OnInit, OnDestroy {
       this.addPhotoService,
       this.deletePhotoService,
       (payload: string) => this.chat.send(payload),
-      () => this.scrollToBottom(),
+      () => this.scheduleScroll(),
       () => this.closeAttachmentMenu(),
       (messageId: string) => this.handleDelete(messageId),
       (value: string | null | undefined) => this.isLikelyObjectId(value),
@@ -74,7 +77,7 @@ export class Chat implements OnInit, OnDestroy {
       this.deleteVideoService,
       this.http,
       (payload: string) => this.chat.send(payload),
-      () => this.scrollToBottom(),
+      () => this.scheduleScroll(),
       () => this.closeAttachmentMenu(),
       (messageId: string) => this.handleDelete(messageId),
       (value: string | null | undefined) => this.isLikelyObjectId(value),
@@ -155,7 +158,7 @@ export class Chat implements OnInit, OnDestroy {
             this.messages.push(uiItem)
             this.ensureVideoNameForMessage(uiItem)
           }
-          queueMicrotask(() => this.scrollToBottom())
+          this.scheduleScroll()
         }
 
         const opened = this.chat.connect(this.peerId)
@@ -188,7 +191,7 @@ export class Chat implements OnInit, OnDestroy {
           const uiItem = this.buildUiMessage(msg, isMe, at, id)
           this.messages.push(uiItem)
           this.ensureVideoNameForMessage(uiItem)
-          queueMicrotask(() => this.scrollToBottom())
+          this.scheduleScroll()
         })
       },
       error: () => {
@@ -222,7 +225,7 @@ export class Chat implements OnInit, OnDestroy {
           const uiItem = this.buildUiMessage(msg, isMe, at, id)
           this.messages.push(uiItem)
           this.ensureVideoNameForMessage(uiItem)
-          queueMicrotask(() => this.scrollToBottom())
+          this.scheduleScroll()
         })
       }
     })
@@ -239,7 +242,7 @@ export class Chat implements OnInit, OnDestroy {
       return
     }
     this.input.set("")
-    queueMicrotask(() => this.scrollToBottom())
+    this.scheduleScroll()
   }
 
   toggleAttachmentMenu(): void {
@@ -259,10 +262,15 @@ export class Chat implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    const el = document.getElementById("messages")
-    if (el) {
-      el.scrollTop = el.scrollHeight
-    }
+    scrollToBottomById("messages")
+  }
+
+  private scheduleScroll(): void {
+    scheduleScrollById("messages")
+  }
+
+  private shouldStickToBottom(): boolean {
+    return shouldStickToBottomById("messages")
   }
 
   private buildUiMessage(msg: ChatMessage | null | undefined, isMe: boolean, at: string, id: string): UiMessage {
@@ -486,4 +494,47 @@ export class Chat implements OnInit, OnDestroy {
   async handleUploadVideo(event: Event): Promise<void> {
     await this.videoFeature.handleUploadVideo(event)
   }
+
+  openConfirm(kind: "message" | "photo" | "video" | "photo-preview"): void {
+    this.showActionModal = false
+    this.confirmKind = kind
+    this.confirmOpen = true
+  }
+
+  openConfirmPhotoFromPreview(): void {
+    this.selectedMessageId = this.photoFeature.previewPhotoMessageId
+    this.openConfirm("photo-preview")
+  }
+
+  closeConfirm(): void {
+    this.confirmOpen = false
+    this.confirmKind = null
+  }
+
+  async confirmAction(): Promise<void> {
+    const kind = this.confirmKind
+    this.closeConfirm()
+    if (kind === "message") {
+      await this.confirmDelete()
+    }
+    else if (kind === "photo") {
+      await this.confirmDeletePhoto()
+    }
+    else if (kind === "photo-preview") {
+      await this.deletePhotoFromPreview()
+    }
+    else if (kind === "video") {
+      await this.confirmDeleteVideo()
+    }
+  }
+
+  getSelectedVideoName(): string {
+    const id = this.editMessageId
+    if (!id) {
+      return ""
+    }
+    const m = this.messages.find(x => x.id === id)
+    return m?.videoName || "la video"
+  }
+
 }

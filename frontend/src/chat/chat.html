@@ -50,7 +50,7 @@
                 </div>
             </div>
 
-            <div class="h-4"></div>
+            <div data-scroll-anchor="end" class="h-4"></div>
         </div>
     </main>
 
@@ -84,7 +84,7 @@
 
                     <button *ngIf="selectedIsMine && photoFeature.selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
-                        (click)="confirmDeletePhoto()">
+                        (click)="openConfirm('photo')">
                         Supprimer la photo
                     </button>
 
@@ -96,7 +96,7 @@
 
                     <button *ngIf="selectedIsMine && videoFeature.selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
-                        (click)="confirmDeleteVideo()">
+                        (click)="openConfirm('video')">
                         Supprimer la vidéo
                     </button>
 
@@ -112,7 +112,7 @@
                         *ngIf="selectedIsMine && !photoFeature.selectedMessageHasPhoto && !videoFeature.selectedMessageHasVideo"
                         type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
-                        (click)="confirmDelete()">
+                        (click)="openConfirm('message')">
                         Supprimer le message
                     </button>
 
@@ -207,10 +207,59 @@
             <div *ngIf="photoFeature.previewPhotoIsMine" class="mt-4 flex flex-wrap justify-center gap-2">
                 <button type="button"
                     class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-                    (click)="deletePhotoFromPreview()">Supprimer</button>
+                    (click)="openConfirmPhotoFromPreview()">Supprimer</button>
                 <button type="button"
                     class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30"
                     (click)="cancelPhotoPreview()">Fermer</button>
+            </div>
+        </div>
+    </div>
+    <div *ngIf="confirmOpen" class="fixed inset-0 z-[130]">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="closeConfirm()"></div>
+
+        <div class="relative top-1/2 -translate-y-1/2 mx-auto w-[92%] max-w-sm">
+            <div class="rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+                <div class="p-4 space-y-2">
+                    <h3 class="text-base font-semibold text-gray-900">Confirmation</h3>
+
+                    <p class="text-sm text-gray-700" *ngIf="confirmKind === 'message'">
+                        Es-tu sûr de vouloir supprimer ce message ?
+                    </p>
+
+                    <div *ngIf="confirmKind === 'photo'" class="space-y-2">
+                        <p class="text-sm text-gray-700">Es-tu sûr de vouloir supprimer cette photo ?</p>
+                        <img *ngIf="photoFeature.selectedPhotoUrl" [src]="photoFeature.selectedPhotoUrl"
+                            alt="Photo à supprimer" class="max-h-48 w-full rounded-lg object-contain border" />
+                    </div>
+
+                    <div *ngIf="confirmKind === 'photo-preview'" class="space-y-2">
+                        <p class="text-sm text-gray-700">Es-tu sûr de vouloir supprimer cette photo ?</p>
+                        <img *ngIf="photoFeature.photoPreviewUrl" [src]="photoFeature.photoPreviewUrl"
+                            alt="Photo à supprimer" class="max-h-48 w-full rounded-lg object-contain border" />
+                    </div>
+
+                    <div *ngIf="confirmKind === 'video'" class="space-y-1">
+                        <p class="text-sm text-gray-700">Es-tu sûr de vouloir supprimer cette vidéo ?</p>
+                        <p class="text-xs text-gray-500 truncate">
+                            {{ getSelectedVideoName() }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100"></div>
+
+                <div class="p-3 flex gap-2">
+                    <button type="button"
+                        class="flex-1 rounded-xl bg-red-600 text-white text-sm px-4 py-2 active:scale-[0.98]"
+                        (click)="confirmAction()">
+                        Oui, supprimer
+                    </button>
+                    <button type="button"
+                        class="flex-1 rounded-xl bg-gray-100 text-gray-900 text-sm px-4 py-2 active:scale-[0.98]"
+                        (click)="closeConfirm()">
+                        Annuler
+                    </button>
+                </div>
             </div>
         </div>
     </div>
