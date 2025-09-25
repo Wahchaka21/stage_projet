@@ -117,7 +117,7 @@ export class Chat implements OnInit, OnDestroy {
     }
     else {
       this.peerId = ""
-    }    if (!this.peerId) {
+    } if (!this.peerId) {
       console.warn("[chat] pas de peerId dans l'URL, j'arrête ici")
       return
     }
@@ -137,12 +137,12 @@ export class Chat implements OnInit, OnDestroy {
               isMe = true
             }
             let when: Date
-        if (msg?.at) {
-          when = new Date(msg.at)
-        }
-        else {
-          when = new Date()
-        }
+            if (msg?.at) {
+              when = new Date(msg.at)
+            }
+            else {
+              when = new Date()
+            }
             const at = when.toLocaleTimeString()
             let id = ""
             if (typeof (msg as any)._id === "string") {
@@ -171,12 +171,12 @@ export class Chat implements OnInit, OnDestroy {
             isMe = true
           }
           let when: Date
-        if (msg?.at) {
-          when = new Date(msg.at)
-        }
-        else {
-          when = new Date()
-        }
+          if (msg?.at) {
+            when = new Date(msg.at)
+          }
+          else {
+            when = new Date()
+          }
           const at = when.toLocaleTimeString()
           let id = ""
           if (typeof (msg as any)._id === "string") {
@@ -205,12 +205,12 @@ export class Chat implements OnInit, OnDestroy {
             isMe = true
           }
           let when: Date
-        if (msg?.at) {
-          when = new Date(msg.at)
-        }
-        else {
-          when = new Date()
-        }
+          if (msg?.at) {
+            when = new Date(msg.at)
+          }
+          else {
+            when = new Date()
+          }
           const at = when.toLocaleTimeString()
           let id = ""
           if (typeof (msg as any)._id === "string") {
@@ -487,7 +487,3 @@ export class Chat implements OnInit, OnDestroy {
     await this.videoFeature.handleUploadVideo(event)
   }
 }
-
-
-
-

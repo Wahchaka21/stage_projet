@@ -127,7 +127,7 @@ export class VideoFeature {
     let file: File | null = null
     if (input.files && input.files[0]) {
       file = input.files[0]
-    }    if (!file) {
+    } if (!file) {
       return
     }
 
@@ -505,8 +505,3 @@ export class VideoFeature {
     }
   }
 }
-
-
-
-
-
