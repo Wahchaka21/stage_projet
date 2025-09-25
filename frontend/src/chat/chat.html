@@ -69,43 +69,48 @@
                 <div class="border-t border-gray-100"></div>
 
                 <div class="p-2 flex flex-col">
-                    <button *ngIf="!selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
+                    <button *ngIf="!photoFeature.selectedMessageHasPhoto && !videoFeature.selectedMessageHasVideo"
+                        type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="copierMessageSelectionne()">
                         Copier le texte
                     </button>
 
-                    <button *ngIf="selectedMessageHasPhoto" type="button"
+                    <button *ngIf="photoFeature.selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="openSelectedPhoto()">
                         Voir la photo
                     </button>
 
-                    <button *ngIf="selectedIsMine && selectedMessageHasPhoto" type="button"
+                    <button *ngIf="selectedIsMine && photoFeature.selectedMessageHasPhoto" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDeletePhoto()">
                         Supprimer la photo
                     </button>
 
-                    <button *ngIf="selectedMessageHasVideo" type="button"
+                    <button *ngIf="videoFeature.selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="downloadSelectedVideo()">
                         Télécharger la vidéo
                     </button>
 
-                    <button *ngIf="selectedIsMine && selectedMessageHasVideo" type="button"
+                    <button *ngIf="selectedIsMine && videoFeature.selectedMessageHasVideo" type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDeleteVideo()">
                         Supprimer la vidéo
                     </button>
 
-                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
+                    <button
+                        *ngIf="selectedIsMine && !photoFeature.selectedMessageHasPhoto && !videoFeature.selectedMessageHasVideo"
+                        type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-gray-100 active:scale-[0.99]"
                         (click)="ouvrirEditionMessage()">
                         Modifier le message
                     </button>
 
-                    <button *ngIf="selectedIsMine && !selectedMessageHasPhoto && !selectedMessageHasVideo" type="button"
+                    <button
+                        *ngIf="selectedIsMine && !photoFeature.selectedMessageHasPhoto && !videoFeature.selectedMessageHasVideo"
+                        type="button"
                         class="text-left px-4 py-2 text-sm rounded-lg hover:bg-red-50 text-red-600 active:scale-[0.99]"
                         (click)="confirmDelete()">
                         Supprimer le message
@@ -193,13 +198,13 @@
         </div>
     </form>
 
-    <div *ngIf="photoPreviewUrl"
+    <div *ngIf="photoFeature.photoPreviewUrl"
         class="photo-preview-overlay fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm"
         (click)="closePhotoPreview($event)">
         <div class="max-h-[90vh] max-w-[92vw] p-4" (click)="$event.stopPropagation()">
-            <img [src]="photoPreviewUrl" alt="Previsualisation photo" loading="lazy"
+            <img [src]="photoFeature.photoPreviewUrl" alt="Previsualisation photo" loading="lazy"
                 class="max-h-[80vh] w-full rounded-2xl object-contain" />
-            <div *ngIf="previewPhotoIsMine" class="mt-4 flex flex-wrap justify-center gap-2">
+            <div *ngIf="photoFeature.previewPhotoIsMine" class="mt-4 flex flex-wrap justify-center gap-2">
                 <button type="button"
                     class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
                     (click)="deletePhotoFromPreview()">Supprimer</button>
