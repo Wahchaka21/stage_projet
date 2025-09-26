@@ -2,7 +2,6 @@ const express = require("express")
 const isAuth = require("../middlewares/authCheck")
 const isAdmin = require("../middlewares/isAdmin")
 const adminController = require("../controllers/adminController")
-const { isValideObjectId } = require("../utils/validator")
 
 const router = express.Router()
 

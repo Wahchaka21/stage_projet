@@ -44,7 +44,59 @@ async function deleteRdv(rdvId) {
     }
 }
 
+async function listRdvsForClient(clientId, { from, to } = {}) {
+    try {
+        if (!clientId || !isValideObjectId(clientId)) {
+            throw persoError("INVALID_ID", "Identifiant client invalide");
+        }
+        const filter = { sharedWithClientId: clientId };
+        if (from || to) {
+            filter.date = {}
+
+            if (from) {
+                filter.date.$gte = new Date(from)
+            }
+
+            if (to) {
+                filter.date.$lte = new Date(to)
+            }
+        }
+        return await rdvSchema.find(filter).sort({ date: 1 }).lean();
+    } 
+    catch (err) {
+        if (err?.type) throw err
+        throw persoError("DB_ERROR", "Erreur lors de la lecture des rendez-vous", { original: err.message })
+    }
+}
+
+async function listRdvsForUser(userId, { from, to } = {}) {
+    try {
+        if (!userId || !isValideObjectId(userId)) {
+            throw persoError("INVALID_ID", "Identifiant utilisateur invalide")
+        }
+        const filter = { userId }
+        if (from || to) {
+            filter.date = {}
+
+            if (from) {
+                filter.date.$gte = new Date(from)
+            }
+
+            if (to) {
+                filter.date.$lte = new Date(to)
+            }
+        }
+        return await rdvSchema.find(filter).sort({ date: 1 }).lean()
+    } 
+    catch (err) {
+        if (err?.type) throw err
+        throw persoError("DB_ERROR", "Erreur lors de la lecture des rendez-vous", { original: err.message })
+    }
+}
+
 module.exports = {
     createRdv,
-    deleteRdv
+    deleteRdv,
+    listRdvsForClient,
+    listRdvsForUser
 }
