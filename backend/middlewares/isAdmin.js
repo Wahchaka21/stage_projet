@@ -1,6 +1,8 @@
 function requireAdmin(req, res, next) {
-    if(!req.user || req.user.role !== "admin") {
-        return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès réservé aux admins"}})
+    if (!req.user || req.user.role !== "admin") {
+        return res.status(403).json({ error: { code: "FORBIDDEN", message: "Acces reserve aux admins" } })
     }
     next()
 }
+
+module.exports = requireAdmin

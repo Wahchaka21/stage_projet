@@ -14,6 +14,7 @@ import { DeleteVideoService } from '../chat/delete-video.service';
 import { PhotoFeature } from '../chat/photo/photo'
 import { VideoFeature } from '../chat/video/video'
 import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
+import { Rdv } from './rdv/rdv';
 
 type AdminUser = {
   _id: string
@@ -39,7 +40,7 @@ type UiMessage = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, Rdv],
   templateUrl: './admin.html'
 })
 export class Admin implements OnInit, OnDestroy {
@@ -69,6 +70,7 @@ export class Admin implements OnInit, OnDestroy {
   editError: string | null = null
   me: any | null = null
   myUserId: string | null = null
+  view: "messages" | "rdv" = "messages"
 
   private activePeerId: string | null = null
   private messageSubscription: Subscription | null = null
@@ -83,7 +85,7 @@ export class Admin implements OnInit, OnDestroy {
     private addPhotoService: AddPhotoService,
     private deletePhotoService: DeletePhotoService,
     private addVideoService: AddVideoService,
-    private deleteVideoService: DeleteVideoService
+    private deleteVideoService: DeleteVideoService,
   ) { }
 
   ngOnInit(): void {
@@ -184,6 +186,7 @@ export class Admin implements OnInit, OnDestroy {
     this.disconnectFromPeer()
     this.connectToPeer(newPeerId)
     this.fetchHistoryForPeer(newPeerId)
+    this.view = "messages"
   }
 
   sendMessage(): void {
@@ -622,5 +625,8 @@ export class Admin implements OnInit, OnDestroy {
     catch {
       this.messagesError = "Erreur lors de la copie du message"
     }
+  }
+  onRdvCreated(evt: any) {
+    console.log('RDV créé', evt);
   }
 }

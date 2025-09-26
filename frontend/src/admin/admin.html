@@ -9,7 +9,7 @@
       <div class="space-y-1 text-right sm:text-left">
         <p class="text-sm uppercase tracking-wider text-white/70">Espace admin</p>
         <h1 class="text-2xl font-semibold tracking-tight text-[#fbde8a]">Gestion des conversations</h1>
-        <p class="text-sm text-white/80">Acces a tous les utilisateurs et a leur messagerie.</p>
+        <p class="text-sm text-white/80">Accès à tous les utilisateurs et à leur messagerie.</p>
       </div>
     </header>
 
@@ -23,38 +23,31 @@
         <p class="text-sm text-white/75" *ngIf="usersLoading">Chargement de la liste...</p>
         <p class="rounded-xl border border-[#fbde8a] bg-[#fbde8a]/20 px-3 py-2 text-sm font-semibold text-white"
           *ngIf="usersError">{{ usersError }}</p>
-        <p class="text-sm text-white/75" *ngIf="!usersLoading && users.length === 0 && !usersError">Aucun utilisateur
-          trouve.</p>
+        <p class="text-sm text-white/75" *ngIf="!usersLoading && users.length === 0 && !usersError">
+          Aucun utilisateur trouvé.
+        </p>
 
         <ul class="flex max-h-[65vh] flex-col gap-2 overflow-y-auto pr-1">
           <ng-container *ngFor="let user of users">
             <ng-container *ngIf="selectedUser && selectedUser._id === user._id; else userDefault">
               <li (click)="selectUser(user)"
                 class="cursor-pointer rounded-2xl border border-[#fbde8a] bg-white px-4 py-3 text-[#315f92] shadow-lg transition hover:-translate-y-0.5">
-                <div class="text-sm font-semibold text-[#315f92]">
-                  {{ getDisplayName(user) }}
-                </div>
-                <div class="text-xs uppercase tracking-wide text-[#315f92]/70">
-                  {{ user.role || 'role inconnu' }}
-                </div>
+                <div class="text-sm font-semibold text-[#315f92]">{{ getDisplayName(user) }}</div>
+                <div class="text-xs uppercase tracking-wide text-[#315f92]/70">{{ user.role || 'role inconnu' }}</div>
               </li>
             </ng-container>
             <ng-template #userDefault>
               <li (click)="selectUser(user)"
                 class="cursor-pointer rounded-2xl border border-transparent bg-white/5 px-4 py-3 text-white transition hover:-translate-y-0.5 hover:border-[#fbde8a]/60 hover:bg-[#fbde8a]/15">
-                <div class="text-sm font-semibold text-white">
-                  {{ getDisplayName(user) }}
-                </div>
-                <div class="text-xs uppercase tracking-wide text-white/70">
-                  {{ user.role || 'role inconnu' }}
-                </div>
+                <div class="text-sm font-semibold text-white">{{ getDisplayName(user) }}</div>
+                <div class="text-xs uppercase tracking-wide text-white/70">{{ user.role || 'role inconnu' }}</div>
               </li>
             </ng-template>
           </ng-container>
         </ul>
       </aside>
 
-      <section class="grid h-[78vh] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 rounded-3xl bg-white p-6 shadow-2xl">
+      <section class="grid h-[78vh] grid-rows-[auto_auto_minmax(0,1fr)] gap-4 rounded-3xl bg-white p-6 shadow-2xl">
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e3e8f3] pb-4">
           <div>
@@ -67,218 +60,243 @@
           </span>
         </div>
 
-        <div id="adminMessages" #msgBox class="overflow-y-auto pr-2">
-          <div class="flex flex-col gap-3 pb-6">
+        <div class="flex items-center gap-2">
+          <div class="inline-flex rounded-full border border-[#e1e9f5] overflow-hidden shadow-sm">
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition"
+              [class.bg-[#315f92]]="view === 'messages'" [class.text-white]="view === 'messages'"
+              [class.text-[#315f92]]="view !== 'messages'" (click)="view = 'messages'">
+              Messagerie
+            </button>
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition"
+              [class.bg-[#315f92]]="view === 'rdv'" [class.text-white]="view === 'rdv'"
+              [class.text-[#315f92]]="view !== 'rdv'" (click)="view = 'rdv'">
+              Planifier un RDV
+            </button>
+          </div>
+        </div>
 
-            <p class="rounded-xl bg-[#fbde8a]/30 px-4 py-2 text-sm text-[#315f92]" *ngIf="messagesLoading">
-              Chargement des messages...
-            </p>
-            <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="messagesError">
-              {{ messagesError }}
-            </p>
-            <p class="text-sm text-[#527bab]" *ngIf="!messagesLoading && messages.length === 0 && !messagesError">
-              Aucun message pour le moment.
-            </p>
+        <ng-container *ngIf="view === 'messages'; else rdvView">
+          <div id="adminMessages" #msgBox class="overflow-y-auto pr-2">
+            <div class="flex flex-col gap-3 pb-6">
+              <p class="rounded-xl bg-[#fbde8a]/30 px-4 py-2 text-sm text-[#315f92]" *ngIf="messagesLoading">
+                Chargement des messages...
+              </p>
+              <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+                *ngIf="messagesError">
+                {{ messagesError }}
+              </p>
+              <p class="text-sm text-[#527bab]" *ngIf="!messagesLoading && messages.length === 0 && !messagesError">
+                Aucun message pour le moment.
+              </p>
 
-            <ng-container *ngFor="let message of messages; trackBy: trackByMessage">
-
-              <ng-container *ngIf="message.me; else messageStandard">
-                <article
-                  class="ml-auto w-full max-w-xl rounded-2xl border border-[#24476e] bg-[#315f92] text-white shadow-xl transition p-4">
-                  <div class="mb-2 flex flex-wrap items-baseline gap-2 text-xs font-medium text-white/80">
-                    <span class="uppercase tracking-wide">{{ getAuthorLabel(message) }}</span>
-                    <span>{{ message.at }}</span>
-                    <span *ngIf="message.updatedAt" class="italic">Modifie {{ message.updatedAt }}</span>
-                  </div>
-
-                  <ng-container *ngIf="message.photoUrl; else nonMediaMe">
-                    <div class="space-y-3">
-                      <img [src]="message.photoUrl" alt="Photo envoyee" loading="lazy"
-                        class="block max-h-64 w-full rounded-xl object-cover" (click)="openPhotoFromMessage(message)" />
-                      <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                        <button type="button" (click)="openPhotoFromMessage(message)"
-                          class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Voir</button>
-                        <button type="button" (click)="deleteMessage(message.id)"
-                          class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10">Supprimer</button>
-                      </div>
+              <ng-container *ngFor="let message of messages; trackBy: trackByMessage">
+                <ng-container *ngIf="message.me; else messageStandard">
+                  <article
+                    class="ml-auto w-full max-w-xl rounded-2xl border border-[#24476e] bg-[#315f92] text-white shadow-xl transition p-4">
+                    <div class="mb-2 flex flex-wrap items-baseline gap-2 text-xs font-medium text-white/80">
+                      <span class="uppercase tracking-wide">{{ getAuthorLabel(message) }}</span>
+                      <span>{{ message.at }}</span>
+                      <span *ngIf="message.updatedAt" class="italic">Modifié {{ message.updatedAt }}</span>
                     </div>
-                  </ng-container>
 
-                  <ng-template #nonMediaMe>
-                    <ng-container *ngIf="message.videoUrl; else textContentMe">
+                    <ng-container *ngIf="message.photoUrl; else nonMediaMe">
                       <div class="space-y-3">
-                        <a [href]="message.videoUrl" target="_blank" rel="noopener" download
-                          class="block truncate text-sm underline decoration-[#fbde8a] decoration-2 underline-offset-4 text-[#fbde8a]">
-                          {{ message.videoName || 'Telecharger la video' }}
-                        </a>
+                        <img [src]="message.photoUrl" alt="Photo envoyée" loading="lazy"
+                          class="block max-h-64 w-full rounded-xl object-cover"
+                          (click)="openPhotoFromMessage(message)" />
                         <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                          <button type="button" (click)="downloadVideo(message)"
-                            class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Telecharger</button>
+                          <button type="button" (click)="openPhotoFromMessage(message)"
+                            class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Voir</button>
                           <button type="button" (click)="deleteMessage(message.id)"
                             class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10">Supprimer</button>
                         </div>
                       </div>
                     </ng-container>
-                  </ng-template>
 
-                  <ng-template #textContentMe>
-                    <p class="whitespace-pre-wrap text-sm" *ngIf="editMessageId !== message.id">{{ message.text }}</p>
+                    <ng-template #nonMediaMe>
+                      <ng-container *ngIf="message.videoUrl; else textContentMe">
+                        <div class="space-y-3">
+                          <a [href]="message.videoUrl" target="_blank" rel="noopener" download
+                            class="block truncate text-sm underline decoration-[#fbde8a] decoration-2 underline-offset-4 text-[#fbde8a]">
+                            {{ message.videoName || 'Télécharger la vidéo' }}
+                          </a>
+                          <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
+                            <button type="button" (click)="downloadVideo(message)"
+                              class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Télécharger</button>
+                            <button type="button" (click)="deleteMessage(message.id)"
+                              class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10">Supprimer</button>
+                          </div>
+                        </div>
+                      </ng-container>
+                    </ng-template>
 
-                    <div *ngIf="editMessageId === message.id" class="mt-2 space-y-3">
-                      <textarea rows="3" [(ngModel)]="editDraft"
-                        class="w-full rounded-xl border border-white/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
-                      <div class="flex flex-wrap gap-2">
-                        <button type="button" (click)="confirmEdit()"
-                          class="rounded-full bg-[#fbde8a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:opacity-90">
-                          Enregistrer
-                        </button>
-                        <button type="button" (click)="cancelEdit()"
-                          class="rounded-full border border-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10">
-                          Annuler
-                        </button>
+                    <ng-template #textContentMe>
+                      <p class="whitespace-pre-wrap text-sm" *ngIf="editMessageId !== message.id">{{ message.text }}</p>
+
+                      <div *ngIf="editMessageId === message.id" class="mt-2 space-y-3">
+                        <textarea rows="3" [(ngModel)]="editDraft"
+                          class="w-full rounded-xl border border-white/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
+                        <div class="flex flex-wrap gap-2">
+                          <button type="button" (click)="confirmEdit()"
+                            class="rounded-full bg-[#fbde8a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:opacity-90">
+                            Enregistrer
+                          </button>
+                          <button type="button" (click)="cancelEdit()"
+                            class="rounded-full border border-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10">
+                            Annuler
+                          </button>
+                        </div>
+                        <p *ngIf="editError" class="text-xs font-semibold text-red-200">{{ editError }}</p>
                       </div>
-                      <p *ngIf="editError" class="text-xs font-semibold text-red-200">{{ editError }}</p>
-                    </div>
 
-                    <div *ngIf="editMessageId !== message.id"
-                      class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                      <button type="button" (click)="openEdit(message)"
-                        class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Modifier</button>
-                      <button type="button" (click)="deleteMessage(message.id)"
-                        class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Supprimer</button>
-                      <button type="button" (click)="copyMessage(message.id)"
-                        class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Copier</button>
-                    </div>
-                  </ng-template>
-                </article>
-              </ng-container>
-
-              <ng-template #messageStandard>
-                <article
-                  class="w-full max-w-xl rounded-2xl border border-[#e1e9f5] bg-white text-[#315f92] shadow-sm transition p-4">
-                  <div class="mb-2 flex flex-wrap items-baseline gap-2 text-xs font-medium text-[#527bab]">
-                    <span class="uppercase tracking-wide">{{ getAuthorLabel(message) }}</span>
-                    <span>{{ message.at }}</span>
-                    <span *ngIf="message.updatedAt" class="italic">Modifie {{ message.updatedAt }}</span>
-                  </div>
-
-                  <ng-container *ngIf="message.photoUrl; else nonMediaStandard">
-                    <div class="space-y-3">
-                      <img [src]="message.photoUrl" alt="Photo envoyee" loading="lazy"
-                        class="block max-h-64 w-full rounded-xl object-cover" (click)="openPhotoFromMessage(message)" />
-                      <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                        <button type="button" (click)="openPhotoFromMessage(message)"
-                          class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Voir</button>
+                      <div *ngIf="editMessageId !== message.id"
+                        class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
+                        <button type="button" (click)="openEdit(message)"
+                          class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Modifier</button>
                         <button type="button" (click)="deleteMessage(message.id)"
-                          class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10">Supprimer</button>
+                          class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Supprimer</button>
+                        <button type="button" (click)="copyMessage(message.id)"
+                          class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Copier</button>
                       </div>
-                    </div>
-                  </ng-container>
+                    </ng-template>
+                  </article>
+                </ng-container>
 
-                  <ng-template #nonMediaStandard>
-                    <ng-container *ngIf="message.videoUrl; else textContentStandard">
+                <ng-template #messageStandard>
+                  <article
+                    class="w-full max-w-xl rounded-2xl border border-[#e1e9f5] bg-white text-[#315f92] shadow-sm transition p-4">
+                    <div class="mb-2 flex flex-wrap items-baseline gap-2 text-xs font-medium text-[#527bab]">
+                      <span class="uppercase tracking-wide">{{ getAuthorLabel(message) }}</span>
+                      <span>{{ message.at }}</span>
+                      <span *ngIf="message.updatedAt" class="italic">Modifié {{ message.updatedAt }}</span>
+                    </div>
+
+                    <ng-container *ngIf="message.photoUrl; else nonMediaStandard">
                       <div class="space-y-3">
-                        <a [href]="message.videoUrl" target="_blank" rel="noopener" download
-                          class="block truncate text-sm underline decoration-[#315f92] decoration-2 underline-offset-4 text-[#315f92]">
-                          {{ message.videoName || 'Telecharger la video' }}
-                        </a>
+                        <img [src]="message.photoUrl" alt="Photo envoyée" loading="lazy"
+                          class="block max-h-64 w-full rounded-xl object-cover"
+                          (click)="openPhotoFromMessage(message)" />
                         <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                          <button type="button" (click)="downloadVideo(message)"
-                            class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Telecharger</button>
+                          <button type="button" (click)="openPhotoFromMessage(message)"
+                            class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Voir</button>
                           <button type="button" (click)="deleteMessage(message.id)"
                             class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10">Supprimer</button>
                         </div>
                       </div>
                     </ng-container>
-                  </ng-template>
 
-                  <ng-template #textContentStandard>
-                    <p class="whitespace-pre-wrap text-sm" *ngIf="editMessageId !== message.id">{{ message.text }}</p>
+                    <ng-template #nonMediaStandard>
+                      <ng-container *ngIf="message.videoUrl; else textContentStandard">
+                        <div class="space-y-3">
+                          <a [href]="message.videoUrl" target="_blank" rel="noopener" download
+                            class="block truncate text-sm underline decoration-[#315f92] decoration-2 underline-offset-4 text-[#315f92]">
+                            {{ message.videoName || 'Télécharger la vidéo' }}
+                          </a>
+                          <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
+                            <button type="button" (click)="downloadVideo(message)"
+                              class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Télécharger</button>
+                            <button type="button" (click)="deleteMessage(message.id)"
+                              class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10">Supprimer</button>
+                          </div>
+                        </div>
+                      </ng-container>
+                    </ng-template>
 
-                    <div *ngIf="editMessageId === message.id" class="mt-2 space-y-3">
-                      <textarea rows="3" [(ngModel)]="editDraft"
-                        class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
-                      <div class="flex flex-wrap gap-2">
-                        <button type="button" (click)="confirmEdit()"
-                          class="rounded-full bg-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#24476e]">Enregistrer</button>
-                        <button type="button" (click)="cancelEdit()"
-                          class="rounded-full border border-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:bg-[#315f92]/10">Annuler</button>
+                    <ng-template #textContentStandard>
+                      <p class="whitespace-pre-wrap text-sm" *ngIf="editMessageId !== message.id">{{ message.text }}</p>
+
+                      <div *ngIf="editMessageId === message.id" class="mt-2 space-y-3">
+                        <textarea rows="3" [(ngModel)]="editDraft"
+                          class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
+                        <div class="flex flex-wrap gap-2">
+                          <button type="button" (click)="confirmEdit()"
+                            class="rounded-full bg-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#24476e]">Enregistrer</button>
+                          <button type="button" (click)="cancelEdit()"
+                            class="rounded-full border border-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:bg-[#315f92]/10">Annuler</button>
+                        </div>
+                        <p *ngIf="editError" class="text-xs font-semibold text-red-600">{{ editError }}</p>
                       </div>
-                      <p *ngIf="editError" class="text-xs font-semibold text-red-600">{{ editError }}</p>
-                    </div>
 
-                    <div *ngIf="editMessageId !== message.id"
-                      class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
-                      <button type="button" (click)="openEdit(message)"
-                        class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Modifier</button>
-                      <button type="button" (click)="deleteMessage(message.id)"
-                        class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Supprimer</button>
-                      <button type="button" (click)="copyMessage(message.id)"
-                        class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Copier</button>
-                    </div>
-                  </ng-template>
-                </article>
-              </ng-template>
+                      <div *ngIf="editMessageId !== message.id"
+                        class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
+                        <button type="button" (click)="openEdit(message)"
+                          class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Modifier</button>
+                        <button type="button" (click)="deleteMessage(message.id)"
+                          class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Supprimer</button>
+                        <button type="button" (click)="copyMessage(message.id)"
+                          class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Copier</button>
+                      </div>
+                    </ng-template>
+                  </article>
+                </ng-template>
+              </ng-container>
 
-            </ng-container>
-            <div data-scroll-anchor="end" class="h-4"></div>
+              <div data-scroll-anchor="end" class="h-4"></div>
+            </div>
           </div>
-        </div>
 
-        <form class="space-y-3 rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-4 shadow-inner"
-          (ngSubmit)="sendMessage()">
-          <label for="messageDraft" class="block text-sm font-semibold text-[#315f92]">Envoyer un message</label>
-          <textarea id="messageDraft" name="messageDraft" rows="3" [(ngModel)]="messageDraft"
-            class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none"
-            placeholder="Ecris ton message ici..."></textarea>
-          <div class="flex items-center justify-between gap-4">
-            <div class="relative" data-role="admin-attachment-area">
-              <button type="button"
-                class="flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                title="Piece jointe" (click)="toggleAttachmentMenu()" data-role="admin-attachment-toggle">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
-                </svg>
-                <span class="text-xs font-semibold uppercase tracking-wide cursor-pointer">Piece jointe</span>
-              </button>
+          <form class="space-y-3 rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-4 shadow-inner"
+            (ngSubmit)="sendMessage()">
+            <label for="messageDraft" class="block text-sm font-semibold text-[#315f92]">Envoyer un message</label>
+            <textarea id="messageDraft" name="messageDraft" rows="3" [(ngModel)]="messageDraft"
+              class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none"
+              placeholder="Écris ton message ici..."></textarea>
+            <div class="flex items-center justify-between gap-4">
+              <div class="relative" data-role="admin-attachment-area">
+                <button type="button"
+                  class="flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
+                  title="Pièce jointe" (click)="toggleAttachmentMenu()" data-role="admin-attachment-toggle">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
+                  </svg>
+                  <span class="text-xs font-semibold uppercase tracking-wide cursor-pointer">Pièce jointe</span>
+                </button>
 
-              <div *ngIf="showAttachmentMenu"
-                class="absolute top-33 left-0 z-30 mt-[-100%] w-56 -translate-y-full rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
-                <button type="button"
-                  class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                  (click)="openPhotoPicker()">Ajouter une photo</button>
-                <button type="button"
-                  class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                  (click)="openVideoPicker()">Ajouter une video</button>
+                <div *ngIf="showAttachmentMenu"
+                  class="absolute top-33 left-0 z-30 mt-[-100%] w-56 -translate-y-full rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
+                  <button type="button"
+                    class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
+                    (click)="openPhotoPicker()">Ajouter une photo</button>
+                  <button type="button"
+                    class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
+                    (click)="openVideoPicker()">Ajouter une vidéo</button>
+                </div>
+
+                <input #photoInput type="file" accept="image/*" class="hidden" (change)="handleUploadPhoto($event)" />
+                <input #videoInput type="file" accept="video/*" class="hidden" (change)="handleUploadVideo($event)" />
               </div>
 
-              <input #photoInput type="file" accept="image/*" class="hidden" (change)="handleUploadPhoto($event)" />
-              <input #videoInput type="file" accept="video/*" class="hidden" (change)="handleUploadVideo($event)" />
+              <button type="submit" [disabled]="isSendDisabled()"
+                class="inline-flex items-center gap-2 rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
+                Envoyer
+              </button>
             </div>
+          </form>
 
-            <button type="submit" [disabled]="isSendDisabled()"
-              class="inline-flex items-center gap-2 rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer">
-              Envoyer
-            </button>
-          </div>
-        </form>
-
-        <div *ngIf="photoPreviewUrl"
-          class="photo-preview-overlay fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          (click)="cancelPhotoPreview()">
-          <div class="max-h-[90vh] max-w-[92vw] p-4" (click)="$event.stopPropagation()">
-            <img [src]="photoPreviewUrl" alt="Previsualisation photo" loading="lazy"
-              class="max-h-[80vh] w-full rounded-2xl object-contain" />
-            <div class="mt-4 flex flex-wrap justify-center gap-2">
-              <button type="button"
-                class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-                (click)="deletePhotoFromPreview()">Supprimer</button>
-              <button type="button"
-                class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30"
-                (click)="cancelPhotoPreview()">Fermer</button>
+          <div *ngIf="photoPreviewUrl"
+            class="photo-preview-overlay fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            (click)="cancelPhotoPreview()">
+            <div class="max-h-[90vh] max-w-[92vw] p-4" (click)="$event.stopPropagation()">
+              <img [src]="photoPreviewUrl" alt="Prévisualisation photo" loading="lazy"
+                class="max-h-[80vh] w-full rounded-2xl object-contain" />
+              <div class="mt-4 flex flex-wrap justify-center gap-2">
+                <button type="button"
+                  class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                  (click)="deletePhotoFromPreview()">Supprimer</button>
+                <button type="button"
+                  class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30"
+                  (click)="cancelPhotoPreview()">Fermer</button>
+              </div>
             </div>
           </div>
-        </div>
+        </ng-container>
+
+        <ng-template #rdvView>
+          <div class="pt-2">
+            <app-rdv [selectedUserId]="selectedUser?._id || null" [myUserId]="myUserId" (created)="null">
+            </app-rdv>
+          </div>
+        </ng-template>
       </section>
     </div>
   </div>

@@ -34,6 +34,11 @@ export const routes: Routes = [
             import("../admin/admin").then((m) => m.Admin)
     },
     {
+        path: "rdv",
+        loadComponent: () =>
+            import("../rdv/rdv").then((m) => m.Rdv)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"
