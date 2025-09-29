@@ -12,6 +12,13 @@ async function chatHandlers(io, socket) {
         return
     }
 
+    try {
+        socket.join("user:" + String(me))
+    }
+    catch(err) {
+        console.error("socket joun user room error :", err)
+    }
+
     socket.on("join", async ({ peerId }) => {
         try {
             if (!peerId) {
@@ -22,7 +29,12 @@ async function chatHandlers(io, socket) {
             const room = "conv:" + String(conv._id)
 
             try {
-                socket.leaveAll()
+                for(const roomName of socket.rooms) {
+                    const isConvRoom = typeof roomName === "string" && roomName.startsWith("conv:")
+                    if(isConvRoom) {
+                        socket.leave(roomName)
+                    }
+                }
             }
             catch (err) {
                 console.error(err)
@@ -59,6 +71,16 @@ async function chatHandlers(io, socket) {
 
             const room = "conv:" + String(conv._id)
             io.to(room).emit("message", saved)
+
+            let destinataireId
+            if(String(conv.userA) === String(me)) {
+                destinataireId = String(conv.userB)
+            }
+            else {
+                destinataireId = String(conv.userA)
+            }
+
+            io.to("user:" + destinataireId).emit("badge:maybe-update", { conversationId: String(conv._id)})
         }
         catch (err) {
             console.error("[socket message] erreur :", err)

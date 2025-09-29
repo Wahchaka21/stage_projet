@@ -18,7 +18,11 @@ function initSockets(httpServer, options) {
 
   io.use(authSocket)
 
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
+    const me = socket?.data?.userId
+    if(me) {
+      socket.join(`user:${me}`)
+    }
     chatHandlers(io, socket)
   })
 
