@@ -31,7 +31,7 @@ export class Home implements OnInit {
       maybeFetchMe = Promise.resolve(this.me)
     }
     else {
-      maybeFetchMe = (this.http.get(`${API}/auth/me`) as any).toPromise()
+      maybeFetchMe = (this.http.get(`${API}/auth/me`, { withCredentials: true }) as any).toPromise()
     }
 
     //Quand on connaît l’utilisateur, si c’est un client -> chercher le coach
@@ -41,35 +41,19 @@ export class Home implements OnInit {
       }
 
       if (this.me && this.me.role === 'user') {
-        this.http.get(`${API}/admin/users`).subscribe({
+        this.http.get(`${API}/user/coach`, { withCredentials: true }).subscribe({
           next: (res: any) => {
-
-            let list
-
-            if (Array.isArray(res?.data)) {
-              list = res.data
-            }
-            else {
-              list = res
-            }
-
-            if (Array.isArray(list)) {
-              this.coach = list.find((x: any) => x.role === 'admin')
-            }
-            else {
-              this.coach = null
-            }
-
-            this.loading = false
+            this.coach = res?.data || null;
+            this.loading = false;
           },
           error: () => {
-            this.coach = null
-            this.loading = false
+            this.coach = null;
+            this.loading = false;
           }
-        })
+        });
       }
       else {
-        this.loading = false
+        this.loading = false;
       }
     }).catch(() => { this.loading = false })
   }

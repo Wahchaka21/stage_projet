@@ -102,7 +102,7 @@ export class Chat implements OnInit, OnDestroy {
   private messageSub: any = null
 
   ngOnInit(): void {
-    this.http.get<any>("http://localhost:3000/auth/me").subscribe({
+    this.http.get<any>("http://localhost:3000/auth/me", { withCredentials: true }).subscribe({
       next: (u) => {
         if (u && u._id) {
           this.myUserId.set(String(u._id))
@@ -125,7 +125,7 @@ export class Chat implements OnInit, OnDestroy {
       return
     }
 
-    this.http.get<any>(`http://localhost:3000/user/${this.peerId}`).subscribe({
+    this.http.get<any>(`http://localhost:3000/user/${this.peerId}`, { withCredentials: true }).subscribe({
       next: (u) => this.peerName.set(u?.name || u?.nickname || u?.email || "Coach"),
       error: () => this.peerName.set("Coach")
     })
