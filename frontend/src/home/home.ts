@@ -1,4 +1,3 @@
-// src/home/home.ts
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -22,10 +21,8 @@ export class Home implements OnInit {
   loading = true
 
   ngOnInit(): void {
-    //Essayer d'utiliser la donnée du user
-    this.me = this.route.snapshot.data['me'] || null
+    this.me = this.route.snapshot.data["me"] || null
 
-    //Si pas de me, on va le chercher côté API
     let maybeFetchMe: Promise<any>
     if (this.me) {
       maybeFetchMe = Promise.resolve(this.me)
@@ -34,46 +31,42 @@ export class Home implements OnInit {
       maybeFetchMe = (this.http.get(`${API}/auth/me`, { withCredentials: true }) as any).toPromise()
     }
 
-    //Quand on connaît l’utilisateur, si c’est un client -> chercher le coach
+    // 3) si user => chercher le coach via /user/coach (cookies!)
     maybeFetchMe.then((u: any) => {
-      if (u) {
-        this.me = u
-      }
+      if (u) this.me = u
 
-      if (this.me && this.me.role === 'user') {
+      if (this.me && this.me.role === "user") {
         this.http.get(`${API}/user/coach`, { withCredentials: true }).subscribe({
           next: (res: any) => {
-            this.coach = res?.data || null;
-            this.loading = false;
+            this.coach = res?.data || null
+            this.loading = false
           },
           error: () => {
-            this.coach = null;
-            this.loading = false;
+            this.coach = null
+            this.loading = false
           }
-        });
+        })
       }
       else {
-        this.loading = false;
+        this.loading = false
       }
     }).catch(() => { this.loading = false })
   }
 
-  /** Prénom pour "Salut {{ ... }}" */
   getPrenom(): string {
     if (!this.me) {
       return ""
     }
     let base = this.me.name || this.me.nickname
     if (!base && this.me.email) {
-      const beforeAt = String(this.me.email).split('@')[0]
-      base = beforeAt
+      base = String(this.me.email).split("@")[0]
     }
-    if (!base) return ""
-    const firstWord = String(base).trim().split(/\s+/)[0]
-    return firstWord || ""
+    if (!base) {
+      return ""
+    }
+    return String(base).trim().split(/\s+/)[0] || ""
   }
 
-  /** Qui est en face dans le chat ? (pour le client -> le coach) */
   chatPeerId(): string | null {
     if (this.me && this.me.role === "user") {
       return this.coach?._id || null
@@ -81,26 +74,16 @@ export class Home implements OnInit {
     return null
   }
 
-  /** Lien de discussion (null = désactivé dans le template) */
   getChatLink(): any[] | null {
     const id = this.chatPeerId()
-    if (id) {
-      return ["/discussion", id]
-    }
-    else {
-      return null
-    }
+    return id ? ["/discussion", id] : null
   }
 
-  /** Le bouton "Messages" doit-il être désactivé ? */
   isChatDisabled(): boolean {
     return !this.chatPeerId()
   }
 
   isAdmin(): boolean {
-    if (this.me && this.me.role === "admin") {
-      return true
-    }
-    return false
+    return !!(this.me && this.me.role === "admin")
   }
 }

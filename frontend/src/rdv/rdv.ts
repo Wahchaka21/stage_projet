@@ -2,7 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { rdvClientService, rdv } from './rdv-client.service';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
+const api = "http://localhost:3000"
 @Component({
   selector: 'app-rdv',
   imports: [CommonModule, RouterLink],
@@ -16,10 +18,16 @@ export class Rdv implements OnInit {
   upcoming: rdv[] = []
   past: rdv[] = []
 
-  constructor(private rdvSvc: rdvClientService) { }
+  constructor(private rdvSvc: rdvClientService, private http: HttpClient) { }
+
+  coach: any | null = null
 
   async ngOnInit() {
     await this.load()
+    this.http.get(`${api}/user/coach`, { withCredentials: true }).subscribe({
+      next: (res: any) => this.coach = res?.data || null,
+      error: () => this.coach = null
+    })
   }
 
   async load() {
@@ -63,5 +71,14 @@ export class Rdv implements OnInit {
     return x.getFullYear() === now.getFullYear()
       && x.getMonth() === now.getMonth()
       && x.getDate() === now.getDate()
+  }
+
+  private chatPeerId(): string | null {
+    return this.coach?._id || null
+  }
+
+  getChatLink(): any[] | null {
+    const id = this.chatPeerId()
+    return id ? ["/discussion", id] : null
   }
 }

@@ -8,13 +8,11 @@ export interface rdv {
     sharedWithClientId: string,
     date: string,
     description?: string,
-    craetedAt?: string,
+    createdAt?: string,
     updatedAt?: string
 }
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class rdvClientService {
     private api = "http://localhost:3000/rdv/mine"
 
@@ -22,8 +20,8 @@ export class rdvClientService {
 
     async listMine(): Promise<rdv[]> {
         const result = await firstValueFrom(
-            this.http.get<rdv[]>(this.api, { withCredentials: true })
+            this.http.get<{ data: rdv[] }>(this.api, { withCredentials: true })
         )
-        return Array.isArray(result) ? result : []
+        return Array.isArray(result?.data) ? result.data : []
     }
 }

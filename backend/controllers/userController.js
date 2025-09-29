@@ -181,6 +181,29 @@ async function handleGetUserById(req, res) {
     }
 }
 
+async function handleGetCoach(req, res) {
+    try {
+        const data = await userService.findCoach()
+        return res.status(200).json({data})
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if(err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("[handleGetCoach] erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
     handleCreateUser,
     handleDeleteMe,
@@ -188,4 +211,5 @@ module.exports = {
     handleChangeUserPassword,
     handleUpdateAvatar,
     handleGetUserById,
+    handleGetCoach
 }

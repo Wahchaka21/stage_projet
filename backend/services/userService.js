@@ -163,9 +163,9 @@ async function createUser(validUser, clientIp = null) {
             createdAt: new Date(),
             loginAttempts: 0,
             accountLocked: false,
-            if(clientIp) {
-                userData.ip = clientIp
-            }
+        }
+        if(clientIp) {
+            userData.ip = clientIp
         }
 
         // 6. Création de l'utilisateur avec transaction
@@ -728,6 +728,25 @@ async function searchUsersByEmail(q = "", limit = 10) {
     return docs
 }
 
+async function findCoach() {
+    try {
+        const coach = await UserSchema.findOne({role: "admin", isDeleted: {$ne: true}})
+            .select("_id name nickname email role")
+            .lean()
+        
+        if(!coach) {
+            throw persoError("NOT_FOUND", "Aucun coach trouvé")
+        }
+        return coach
+    }
+    catch(err) {
+        if(err?.type) {
+            throw err
+        }
+        throw persoError("DB_ERROR", "Erreur lors de la recherche du coach", {original: err.message})
+    }
+}
+
 module.exports = {
     deleteUser,
     restoreUser,
@@ -738,5 +757,6 @@ module.exports = {
     searchUsersByEmail,
     createUser,
     applyCreateUserSecurity,
-    validatePassword
+    validatePassword,
+    findCoach
 }
