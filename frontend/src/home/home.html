@@ -19,7 +19,7 @@
 
         <div class="mt-4 grid grid-cols-2 gap-3">
 
-            <a [routerLink]="getChatLink()" [class.pointer-events-none]="isChatDisabled()"
+            <a [routerLink]="getChatLink() ?? undefined" [class.pointer-events-none]="isChatDisabled()"
                 [class.opacity-50]="isChatDisabled()"
                 class="group flex items-center gap-3 rounded-xl bg-white/95 backdrop-blur px-3 py-3 shadow hover:shadow-md active:scale-[0.99]">
                 <div class="rounded-lg p-2 bg-[#fbde8a]">
@@ -164,7 +164,7 @@
                     <span class="text-[11px] font-medium">Accueil</span>
                 </a>
 
-                <a [routerLink]="getChatLink()" [class.pointer-events-none]="isChatDisabled()"
+                <a [routerLink]="getChatLink() ?? undefined" [class.pointer-events-none]="isChatDisabled()"
                     [class.opacity-50]="isChatDisabled()"
                     class="flex flex-col items-center py-2.5 text-gray-500 hover:text-[#315f92]">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

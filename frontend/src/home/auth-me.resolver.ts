@@ -7,5 +7,5 @@ const API = 'http://localhost:3000'
 
 export const authMeResolver: ResolveFn<any> = () => {
     const http = inject(HttpClient)
-    return http.get(`${API}/auth/me`)
+    return http.get(`${API}/auth/me`, { withCredentials: true })
 }

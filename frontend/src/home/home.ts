@@ -92,22 +92,16 @@ export class Home implements OnInit {
   /** Qui est en face dans le chat ? (pour le client -> le coach) */
   chatPeerId(): string | null {
     if (this.me && this.me.role === "user") {
-      if (this.coach && this.coach._id) {
-        return this.coach._id
-      }
-      else {
-        return null
-      }
-    } else {
-      return null
+      return this.coach?._id || null
     }
+    return null
   }
 
   /** Lien de discussion (null = désactivé dans le template) */
   getChatLink(): any[] | null {
-    const pid = this.chatPeerId()
-    if (pid) {
-      return ["/discussion", pid]
+    const id = this.chatPeerId()
+    if (id) {
+      return ["/discussion", id]
     }
     else {
       return null
@@ -116,11 +110,7 @@ export class Home implements OnInit {
 
   /** Le bouton "Messages" doit-il être désactivé ? */
   isChatDisabled(): boolean {
-    const pid = this.chatPeerId()
-    if (pid) {
-      return false
-    }
-    return true
+    return !this.chatPeerId()
   }
 
   isAdmin(): boolean {

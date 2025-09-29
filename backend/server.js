@@ -18,6 +18,7 @@ const adminRoutes = require("./routes/adminRoute")
 const chatRoutes = require("./routes/chatRoute")
 const cookieParser = require("cookie-parser")
 const { initSockets } = require("./sockets")
+const rdvRoutes = require("./routes/rdvRoute")
 
 const app = express()
 
@@ -64,6 +65,7 @@ app.use("/auth", authRoutes)
 app.use("/user", userRoutes)
 app.use("/admin", adminRoutes)
 app.use("/chat", chatRoutes)
+app.use("/rdv", rdvRoutes)
 
 
 const PORT = config.port || 3000
