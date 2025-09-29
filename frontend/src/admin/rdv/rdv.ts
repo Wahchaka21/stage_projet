@@ -27,6 +27,13 @@ export class Rdv {
     private deleteRdvService: DeleteRdvService
   ) { }
 
+  getCreateButtonLabel(): string {
+    if (this.rdvLoading) {
+      return "Création"
+    }
+    return "Créer le RDV"
+  }
+
   async handleCreateRdv(): Promise<void> {
     this.rdvError = null
     this.rdvSucces = null

@@ -76,7 +76,10 @@ export class Home implements OnInit {
 
   getChatLink(): any[] | null {
     const id = this.chatPeerId()
-    return id ? ["/discussion", id] : null
+    if (id) {
+      return ["/discussion", id]
+    }
+    return null
   }
 
   isChatDisabled(): boolean {

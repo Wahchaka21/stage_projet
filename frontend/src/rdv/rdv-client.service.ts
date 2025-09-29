@@ -22,6 +22,9 @@ export class rdvClientService {
         const result = await firstValueFrom(
             this.http.get<{ data: rdv[] }>(this.api, { withCredentials: true })
         )
-        return Array.isArray(result?.data) ? result.data : []
+        if (Array.isArray(result?.data)) {
+            return result.data
+        }
+        return []
     }
 }

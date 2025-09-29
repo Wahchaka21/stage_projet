@@ -1,4 +1,4 @@
-ï»¿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -155,7 +155,10 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   getAuthorLabel(message: UiMessage): string {
-    return message?.me ? "Moi" : this.getDisplayName(this.selectedUser)
+    if (message?.me) {
+      return "Moi"
+    }
+    return this.getDisplayName(this.selectedUser)
   }
 
   trackByMessage(_index: number, item: UiMessage): string {
@@ -297,7 +300,12 @@ export class Admin implements OnInit, OnDestroy {
       this.cancelEdit()
     }
     catch (e: any) {
-      this.editError = typeof e === "string" ? e : "Erreur lors de la modification du message"
+      if (typeof e === "string") {
+        this.editError = e
+      }
+      else {
+        this.editError = "Erreur lors de la modification du message"
+      }
     }
   }
 
@@ -330,7 +338,12 @@ export class Admin implements OnInit, OnDestroy {
       }
     }
     catch (e: any) {
-      this.messagesError = typeof e === "string" ? e : "Erreur lors de la suppression du message"
+      if (typeof e === "string") {
+        this.messagesError = e
+      }
+      else {
+        this.messagesError = "Erreur lors de la suppression du message"
+      }
     }
   }
 
@@ -516,7 +529,10 @@ export class Admin implements OnInit, OnDestroy {
     if (!this.myUserId) {
       return false
     }
-    const authorId = msg?.userId ? String(msg.userId) : ""
+    let authorId = ""
+    if (msg?.userId) {
+      authorId = String(msg.userId)
+    }
     return authorId === String(this.myUserId)
   }
 
@@ -535,11 +551,17 @@ export class Admin implements OnInit, OnDestroy {
 
   private formatDate(value: any, allowEmpty = false): string {
     if (!value) {
-      return allowEmpty ? "" : new Date().toLocaleString()
+      if (allowEmpty) {
+        return ""
+      }
+      return new Date().toLocaleString()
     }
     const d = new Date(value)
     if (isNaN(d.getTime())) {
-      return allowEmpty ? "" : new Date().toLocaleString()
+      if (allowEmpty) {
+        return ""
+      }
+      return new Date().toLocaleString()
     }
     return d.toLocaleString()
   }
@@ -627,6 +649,10 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
   onRdvCreated(evt: any) {
-    console.log('RDV crÃ©Ã©', evt);
+    console.log('RDV créé', evt);
   }
 }
+
+
+
+

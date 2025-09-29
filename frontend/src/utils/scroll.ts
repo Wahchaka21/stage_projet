@@ -6,7 +6,11 @@ export function scrollToBottomById(id: string, smooth = false): void {
 
     const anchor = el.querySelector("[data-scroll-anchor='end']") as HTMLElement | null
     if (anchor && anchor.scrollIntoView) {
-        anchor.scrollIntoView({ block: "end", behavior: smooth ? "smooth" : "auto" })
+        let behavior: ScrollBehavior = "auto"
+        if (smooth) {
+            behavior = "smooth"
+        }
+        anchor.scrollIntoView({ block: "end", behavior })
     }
     else {
         el.scrollTop = el.scrollHeight

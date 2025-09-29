@@ -269,7 +269,12 @@ function ffprobeDuration(filePath) {
             }
 
             const sec = Math.round(Number(metadata.format.duration))
-            resolve(Number.isFinite(sec) ? sec : null)
+            if (Number.isFinite(sec)) {
+                resolve(sec)
+            }
+            else {
+                resolve(null)
+            }
         })
     })
 }

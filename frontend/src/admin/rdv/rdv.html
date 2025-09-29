@@ -24,7 +24,7 @@
 
         <button type="button" (click)="handleCreateRdv()" [disabled]="rdvLoading || !selectedUserId"
             class="rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
-            {{ rdvLoading ? 'Création…' : 'Créer le RDV' }}
+            {{ getCreateButtonLabel() }}
         </button>
     </div>
 
