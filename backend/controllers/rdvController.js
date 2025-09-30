@@ -41,7 +41,14 @@ async function handleGetRdvsForUser(req, res) {
         const {from, to} = req.query
         const data = await rdvService.listRdvsForUser(String(userId), {from, to})
 
-        return res.status(200).json({ data })
+        const items = (data || []).map(x => ({
+            _id: String(x._id),
+            at: x.date ? new Date(x.date).toISOString() : "",
+            description: x.description || "",
+            userId: x.sharedWithClientId ? String(x.sharedWithClientId) : ""
+        }))
+
+        return res.status(200).json({ items })
     }
     catch(err) {
         if (err && err.code === "INVALID_ID") {

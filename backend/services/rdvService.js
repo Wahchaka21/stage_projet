@@ -74,25 +74,27 @@ async function listRdvsForUser(userId, { from, to } = {}) {
         if (!userId || !isValideObjectId(userId)) {
             throw persoError("INVALID_ID", "Identifiant utilisateur invalide")
         }
-        const filter = { userId }
+
+        const filter = { sharedWithClientId: userId }
+
         if (from || to) {
             filter.date = {}
-
             if (from) {
                 filter.date.$gte = new Date(from)
             }
-
             if (to) {
                 filter.date.$lte = new Date(to)
             }
         }
+
         return await rdvSchema.find(filter).sort({ date: 1 }).lean()
     } 
     catch (err) {
         if (err?.type) throw err
-        throw persoError("DB_ERROR", "Erreur lors de la lecture des rendez-vous", { original: err.message })
+            throw persoError("DB_ERROR", "Erreur lors de la lecture des rendez-vous", { original: err.message })
     }
 }
+
 
 module.exports = {
     createRdv,

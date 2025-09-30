@@ -50,6 +50,15 @@ export class Rdv implements OnInit, OnChanges {
     this.loadList()
   }
 
+  private normalize(item: any): RdvItem {
+    const atRaw = item?.at ?? item?.date ?? ""
+    return {
+      _id: String(item?._id ?? item?.id ?? ""),
+      at: String(atRaw ?? ""),
+      description: String(item?.description ?? ""),
+    } as RdvItem
+  }
+
   private async loadList(): Promise<void> {
     const userId = this.selectedUserId
 
@@ -64,30 +73,23 @@ export class Rdv implements OnInit, OnChanges {
     this.listError = null
 
     try {
-      const res = await this.listRdvService.listForUser(userId)
-      let arr: RdvItem[] = []
+      const res: any = await this.listRdvService.listForUser(userId)
 
-      if (res && Array.isArray(res.items)) {
-        arr = res.items.slice()
-      }
+      const raw =
+        Array.isArray(res?.items) ? res.items :
+          Array.isArray(res?.data) ? res.data :
+            Array.isArray(res) ? res : []
 
-      arr.sort((a, b) => {
-        const ta = new Date(a.at).getTime()
-        const tb = new Date(b.at).getTime()
-        return tb - ta
-      })
+      const arr: RdvItem[] = raw.map((x: any) => this.normalize(x))
+
+      arr.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
       this.items = arr
       this.listLoading = false
 
-      if (this.items.length === 0) {
-        this.showCreate = true
-      }
-      else {
-        this.showCreate = false
-      }
+      this.showCreate = this.items.length === 0
     }
-    catch (_err) {
+    catch {
       this.items = []
       this.listLoading = false
       this.listError = "Impossible de charger les rendez-vous"
@@ -95,12 +97,7 @@ export class Rdv implements OnInit, OnChanges {
   }
 
   getCreateButtonLabel(): string {
-    if (this.rdvLoading) {
-      return "Création..."
-    }
-    else {
-      return "Créer le RDV"
-    }
+    return this.rdvLoading ? "Création..." : "Créer le RDV"
   }
 
   async handleCreateRdv(): Promise<void> {
@@ -108,30 +105,22 @@ export class Rdv implements OnInit, OnChanges {
     this.rdvError = null
 
     const userId = this.selectedUserId
-    if (!userId) {
-      return
-    }
+    if (!userId) return
 
-    const base = this.rdvLocal
-    let trimmed = ""
-    if (typeof base === "string") {
-      trimmed = base.trim()
-    }
-
+    const trimmed = String(this.rdvLocal || "").trim()
     if (!trimmed) {
       this.rdvError = "Choisis une date et une heure"
       return
     }
 
-    const atIso = new Date(trimmed).toISOString()
+    const dateIso = new Date(trimmed).toISOString()
 
     this.rdvLoading = true
-
     try {
       await this.addRdv.addRdv({
-        userId: userId,
-        at: atIso,
-        description: this.rdvDescription ? this.rdvDescription : ""
+        sharedWithClientId: userId,
+        date: dateIso,
+        description: this.rdvDescription || ""
       })
 
       this.rdvLoading = false
@@ -140,43 +129,30 @@ export class Rdv implements OnInit, OnChanges {
       this.rdvDescription = ""
       this.loadList()
     }
-    catch (_err) {
+    catch (err: any) {
       this.rdvLoading = false
-      this.rdvError = "Impossible de créer le RDV"
+
+      if (err?.fields?.sharedWithClientId || err?.fields?.date) {
+        this.rdvError = "Client ou date manquants/invalides."
+      }
+      else {
+        this.rdvError = "Impossible de créer le RDV"
+      }
     }
   }
 
   async delete(item: RdvItem): Promise<void> {
-    if (!item) {
-      return
-    }
-    if (!item._id) {
-      return
-    }
-
+    if (!item || !item._id) return
     const ok = confirm("Supprimer ce RDV ?")
-    if (!ok) {
-      return
-    }
+    if (!ok) return
 
     try {
       await this.delRdv.deleteRdv(item._id)
-
-      const next: RdvItem[] = []
-      for (let i = 0; i < this.items.length; i++) {
-        const it = this.items[i]
-        if (it && it._id !== item._id) {
-          next.push(it)
-        }
-      }
-      this.items = next
-
-      if (this.items.length === 0) {
-        this.showCreate = true
-      }
+      this.items = this.items.filter(x => x._id !== item._id)
+      if (this.items.length === 0) this.showCreate = true
     }
-    catch (_err) {
-      alert('Suppression impossible')
+    catch {
+      alert("Suppression impossible")
     }
   }
 
