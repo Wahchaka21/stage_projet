@@ -13,6 +13,7 @@ import { DeleteVideoService } from './delete-video.service';
 import { PhotoFeature } from './photo/photo';
 import { VideoFeature } from './video/video';
 import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
+import { UnreadService } from '../home/unread.service';
 
 export type UiMessage = {
   id: string
@@ -59,7 +60,8 @@ export class Chat implements OnInit, OnDestroy {
     private addPhotoService: AddPhotoService,
     private deletePhotoService: DeletePhotoService,
     private addvideoService: AddVideoService,
-    private deleteVideoService: DeleteVideoService
+    private deleteVideoService: DeleteVideoService,
+    private unreads: UnreadService
   ) {
     this.photoFeature = new PhotoFeature(
       this.addPhotoService,
@@ -100,6 +102,8 @@ export class Chat implements OnInit, OnDestroy {
   peerName = signal<string>("")
   //ref abonnement
   private messageSub: any = null
+  private currentConversationId: string | null = null
+  private lastMarkedAt: number = 0
 
   ngOnInit(): void {
     this.http.get<any>("http://localhost:3000/auth/me", { withCredentials: true }).subscribe({
@@ -120,7 +124,8 @@ export class Chat implements OnInit, OnDestroy {
     }
     else {
       this.peerId = ""
-    } if (!this.peerId) {
+    }
+    if (!this.peerId) {
       console.warn("[chat] pas de peerId dans l'URL, j'arrête ici")
       return
     }
@@ -167,6 +172,26 @@ export class Chat implements OnInit, OnDestroy {
           return
         }
 
+        this.chat.onSystem().subscribe((payload: any) => {
+          let convId = ""
+
+          if (payload && typeof payload.Conversation === "string" && payload.Conversation.trim()) {
+            convId = payload.Conversation
+          }
+          else if (payload && typeof payload.conversationId === "string" && payload.conversationId.trim()) {
+            convId = payload.conversationId
+          }
+          else if (payload && typeof payload.conversation === "string" && payload.conversation.trim()) {
+            convId = payload.conversation
+          }
+          if (!convId) {
+            return
+          }
+
+          this.currentConversationId = convId
+          this.markAsReadNow(convId)
+        })
+
         this.messageSub = this.chat.stream().subscribe((msg: ChatMessage) => {
           const myId = this.myUserId()
           let isMe = false
@@ -192,6 +217,7 @@ export class Chat implements OnInit, OnDestroy {
           this.messages.push(uiItem)
           this.ensureVideoNameForMessage(uiItem)
           this.scheduleScroll()
+          this.markAsReadThrottled()
         })
       },
       error: () => {
@@ -226,6 +252,7 @@ export class Chat implements OnInit, OnDestroy {
           this.messages.push(uiItem)
           this.ensureVideoNameForMessage(uiItem)
           this.scheduleScroll()
+          this.markAsReadThrottled()
         })
       }
     })
@@ -537,4 +564,19 @@ export class Chat implements OnInit, OnDestroy {
     return m?.videoName || "la video"
   }
 
+  private markAsReadNow(convId: string) {
+    this.unreads.marquerCommeLu(convId)
+      .then(() => { this.lastMarkedAt = Date.now() })
+      .catch(err => console.warn("caht: marquerCommeLu a échoué"))
+  }
+
+  private markAsReadThrottled() {
+    if (!this.currentConversationId) {
+      return
+    }
+    const now = Date.now()
+    if (now - this.lastMarkedAt > 2000) {
+      this.markAsReadNow(this.currentConversationId)
+    }
+  }
 }

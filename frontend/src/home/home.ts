@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { UnreadService } from './unread.service';
+import { Subscription } from 'rxjs';
 
-const API = 'http://localhost:3000'
+const API = "http://localhost:3000"
 
 @Component({
   selector: 'app-home',
@@ -12,15 +14,29 @@ const API = 'http://localhost:3000'
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
-export class Home implements OnInit {
+export class Home implements OnInit, OnDestroy {
   private http = inject(HttpClient)
   private route = inject(ActivatedRoute)
+  private unreads = inject(UnreadService)
+  nombreNonLus = 0
+  private subNonLus: Subscription | null = null
 
   me: any | null = null
   coach: any | null = null
   loading = true
 
   ngOnInit(): void {
+    this.unreads.initialiser()
+
+    this.subNonLus = this.unreads.totalObservable().subscribe((valeur) => {
+      if (typeof valeur === "number") {
+        this.nombreNonLus = valeur
+      }
+      else {
+        this.nombreNonLus = 0
+      }
+    })
+
     this.me = this.route.snapshot.data["me"] || null
 
     let maybeFetchMe: Promise<any>
@@ -31,9 +47,10 @@ export class Home implements OnInit {
       maybeFetchMe = (this.http.get(`${API}/auth/me`, { withCredentials: true }) as any).toPromise()
     }
 
-    // 3) si user => chercher le coach via /user/coach (cookies!)
     maybeFetchMe.then((u: any) => {
-      if (u) this.me = u
+      if (u) {
+        this.me = u
+      }
 
       if (this.me && this.me.role === "user") {
         this.http.get(`${API}/user/coach`, { withCredentials: true }).subscribe({
@@ -51,6 +68,12 @@ export class Home implements OnInit {
         this.loading = false
       }
     }).catch(() => { this.loading = false })
+  }
+
+  ngOnDestroy(): void {
+    if (this.subNonLus) {
+      this.subNonLus.unsubscribe()
+    }
   }
 
   getPrenom(): string {

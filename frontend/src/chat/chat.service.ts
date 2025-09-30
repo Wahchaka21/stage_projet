@@ -23,6 +23,11 @@ export class ChatService {
     // flux des messages entrants
     private messages$ = new Subject<ChatMessage>()
 
+    private system$ = new Subject<any>()
+    onSystem(): Observable<any> {
+        return this.system$.asObservable()
+    }
+
     constructor(private auth: LoginService, private _http: HttpClient) { }
 
     /**
@@ -82,6 +87,7 @@ export class ChatService {
         //events pour debug
         this.socket.on("system", (evt: any) => {
             console.log('[chat][system]', evt)
+            this.system$.next(evt)
         })
 
         this.socket.on("disconnect", (reason) => {
