@@ -1,98 +1,186 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AddRdvService } from './create-rdv.service';
 import { DeleteRdvService } from './delete-rdv.service';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { ListRdvService, RdvItem } from './list-rdv.service';
 
 @Component({
   selector: 'app-rdv',
-  imports: [FormsModule, CommonModule],
-  templateUrl: './rdv.html',
-  styleUrl: './rdv.css'
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './rdv.html'
 })
-export class Rdv {
+export class Rdv implements OnInit, OnChanges {
+
+  @Input() selectedUserId: string | null = null
+  @Input() myUserId: string | null = null
+
   rdvLocal = ""
   rdvDescription = ""
   rdvLoading = false
   rdvError: string | null = null
   rdvSucces: string | null = null
 
-  @Input() selectedUserId: string | null = null
-  @Input() myUserId: string | null = null
+  listLoading = false
+  listError: string | null = null
+  items: RdvItem[] = []
 
-  @Output() created = new EventEmitter<any>()
+  showCreate = true
 
   constructor(
-    private addRdvService: AddRdvService,
-    private deleteRdvService: DeleteRdvService
+    private addRdv: AddRdvService,
+    private delRdv: DeleteRdvService,
+    private listRdvService: ListRdvService,
   ) { }
+
+  ngOnInit(): void {
+    this.reload()
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (Object.prototype.hasOwnProperty.call(changes, "selectedUserId")) {
+      this.reload()
+    }
+  }
+
+  private reload(): void {
+    this.rdvSucces = null
+    this.rdvError = null
+    this.loadList()
+  }
+
+  private async loadList(): Promise<void> {
+    const userId = this.selectedUserId
+
+    if (!userId) {
+      this.items = []
+      this.listLoading = false
+      this.listError = null
+      return
+    }
+
+    this.listLoading = true
+    this.listError = null
+
+    try {
+      const res = await this.listRdvService.listForUser(userId)
+      let arr: RdvItem[] = []
+
+      if (res && Array.isArray(res.items)) {
+        arr = res.items.slice()
+      }
+
+      arr.sort((a, b) => {
+        const ta = new Date(a.at).getTime()
+        const tb = new Date(b.at).getTime()
+        return tb - ta
+      })
+
+      this.items = arr
+      this.listLoading = false
+
+      if (this.items.length === 0) {
+        this.showCreate = true
+      }
+      else {
+        this.showCreate = false
+      }
+    }
+    catch (_err) {
+      this.items = []
+      this.listLoading = false
+      this.listError = "Impossible de charger les rendez-vous"
+    }
+  }
 
   getCreateButtonLabel(): string {
     if (this.rdvLoading) {
-      return "Création"
+      return "Création..."
     }
-    return "Créer le RDV"
+    else {
+      return "Créer le RDV"
+    }
   }
 
   async handleCreateRdv(): Promise<void> {
-    this.rdvError = null
     this.rdvSucces = null
+    this.rdvError = null
 
-    if (!this.myUserId) {
-      this.rdvError = "Utilisateur non authentifié"
-      return
-    }
-    if (!this.selectedUserId) {
-      this.rdvError = "Aucun client selectionné"
-      return
-    }
-    if (!this.rdvLocal) {
-      this.rdvError = "Choisis une date"
+    const userId = this.selectedUserId
+    if (!userId) {
       return
     }
 
-    const d = new Date(this.rdvLocal)
-    if (isNaN(d.getTime())) {
-      this.rdvError = "Date invalide"
+    const base = this.rdvLocal
+    let trimmed = ""
+    if (typeof base === "string") {
+      trimmed = base.trim()
+    }
+
+    if (!trimmed) {
+      this.rdvError = "Choisis une date et une heure"
       return
     }
 
-    const payload = {
-      userId: this.myUserId,
-      sharedWithClientId: this.selectedUserId,
-      date: d.toISOString(),
-      description: this.rdvDescription?.trim() || undefined
-    }
+    const atIso = new Date(trimmed).toISOString()
 
     this.rdvLoading = true
-    try {
-      const result = await this.addRdvService.addRdv(payload)
-      this.rdvSucces = "Rendez-vous créé"
-      this.created.emit(result?.data || result)
 
+    try {
+      await this.addRdv.addRdv({
+        userId: userId,
+        at: atIso,
+        description: this.rdvDescription ? this.rdvDescription : ""
+      })
+
+      this.rdvLoading = false
+      this.rdvSucces = "RDV créé avec succès"
       this.rdvLocal = ""
       this.rdvDescription = ""
+      this.loadList()
     }
-    catch (err) {
-      this.rdvError = String(err || "Erreur lors de la création du rendez-vous")
-    }
-    finally {
+    catch (_err) {
       this.rdvLoading = false
+      this.rdvError = "Impossible de créer le RDV"
     }
   }
 
-  async handleDeleteRdv(rdvId: string): Promise<void> {
-    if (!rdvId) {
+  async delete(item: RdvItem): Promise<void> {
+    if (!item) {
       return
     }
+    if (!item._id) {
+      return
+    }
+
+    const ok = confirm("Supprimer ce RDV ?")
+    if (!ok) {
+      return
+    }
+
     try {
-      const result = await this.deleteRdvService.deleteRdv(rdvId)
-      if (!result) {
-        console.log("aucun rendez-vous trouvez")
+      await this.delRdv.deleteRdv(item._id)
+
+      const next: RdvItem[] = []
+      for (let i = 0; i < this.items.length; i++) {
+        const it = this.items[i]
+        if (it && it._id !== item._id) {
+          next.push(it)
+        }
+      }
+      this.items = next
+
+      if (this.items.length === 0) {
+        this.showCreate = true
       }
     }
-    catch (err: any) {
-      console.error("erreur lors de la suppression du rendez-vous :", err)
+    catch (_err) {
+      alert('Suppression impossible')
     }
+  }
+
+  hasAny(): boolean {
+    return this.items.length > 0
   }
 }

@@ -2,6 +2,7 @@ const express = require("express")
 const isAuth = require("../middlewares/authCheck")
 const isAdmin = require("../middlewares/isAdmin")
 const adminController = require("../controllers/adminController")
+const rdvController = require("../controllers/rdvController")
 
 const router = express.Router()
 
@@ -19,5 +20,7 @@ router.delete("/users/:userId", isAuth, isAdmin, adminController.handleDeleteUse
 
 router.post("/createRdv", isAuth, isAdmin, adminController.handleCreateRdv)
 router.delete("/deleteRdv/:rdvId", isAuth, isAdmin, adminController.handleDeleteRdv)
+
+router.get("/rdv/user/:userId", isAuth, isAdmin, rdvController.handleGetRdvsForUser)
 
 module.exports = router
