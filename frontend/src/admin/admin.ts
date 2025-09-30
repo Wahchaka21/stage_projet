@@ -15,6 +15,7 @@ import { PhotoFeature } from '../chat/photo/photo'
 import { VideoFeature } from '../chat/video/video'
 import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
 import { Rdv } from './rdv/rdv';
+import { UnreadService } from '../home/unread.service';
 
 type AdminUser = {
   _id: string
@@ -76,6 +77,13 @@ export class Admin implements OnInit, OnDestroy {
   private messageSubscription: Subscription | null = null
   private photoFeature!: PhotoFeature
   private videoFeature!: VideoFeature
+  unreadTotal = 0
+  private lastMarkedAt = 0
+  private currentConvId: string | null = null
+  private systemSub: Subscription | null = null
+
+  unreadByConv: Record<string, number> = {}
+  convIdByPeer: Record<string, string> = {}
 
   constructor(
     private http: HttpClient,
@@ -86,6 +94,7 @@ export class Admin implements OnInit, OnDestroy {
     private deletePhotoService: DeletePhotoService,
     private addVideoService: AddVideoService,
     private deleteVideoService: DeleteVideoService,
+    private unreadService: UnreadService,
   ) { }
 
   ngOnInit(): void {
@@ -116,6 +125,20 @@ export class Admin implements OnInit, OnDestroy {
     )
 
     this.loadConnectedAdmin()
+    this.unreadService.initialiser()
+
+    this.unreadService.totalObservable().subscribe(n => {
+      if (typeof n === "number") {
+        this.unreadTotal = n
+      }
+      else {
+        this.unreadTotal = 0
+      }
+    })
+
+    this.unreadService.parConversationObservable().subscribe(map => {
+      this.unreadByConv = map || {}
+    })
   }
 
   ngOnDestroy(): void {
@@ -123,10 +146,13 @@ export class Admin implements OnInit, OnDestroy {
       this.messageSubscription.unsubscribe()
       this.messageSubscription = null
     }
-    else {
-      this.chatService.disconnect()
+    if (this.systemSub) {
+      this.systemSub.unsubscribe()
+      this.systemSub = null
     }
+    this.chatService.disconnect()
   }
+
 
   getDisplayName(user: AdminUser | null): string {
     if (!user) {
@@ -184,6 +210,8 @@ export class Admin implements OnInit, OnDestroy {
     this.selectedUser = user
     this.hasSelectedOnce = true
     this.activePeerId = newPeerId
+    this.lastMarkedAt = 0
+    this.ensureConvIdFor(newPeerId)
 
     this.clearMessageArea()
     this.disconnectFromPeer()
@@ -414,12 +442,44 @@ export class Admin implements OnInit, OnDestroy {
       this.messagesError = "Impossible d'ouvrir la connexion temps reel"
       return
     }
-    this.messageSubscription = this.chatService.stream().subscribe((m) => this.handleIncoming(m))
+
+    this.lastMarkedAt = 0
+
+    if (this.systemSub) this.systemSub.unsubscribe()
+    this.systemSub = this.chatService.onSystem().subscribe((payload: any) => {
+      let convId = ""
+      if (payload && typeof payload.Conversation === "string" && payload.Conversation.trim()) {
+        convId = payload.Conversation
+      }
+      else if (payload && typeof payload.conversationId === "string" && payload.conversationId.trim()) {
+        convId = payload.conversationId
+      }
+      else if (payload && typeof payload.conversation === "string" && payload.conversation.trim()) {
+        convId = payload.conversation
+      }
+
+      if (!convId) return
+      this.currentConvId = convId
+      if (this.selectedUser?._id) {
+        this.convIdByPeer[this.selectedUser._id] = convId
+      }
+      this.markAsReadNow(convId)
+    })
+
+    if (this.messageSubscription) this.messageSubscription.unsubscribe()
+    this.messageSubscription = this.chatService.stream().subscribe((m) => {
+      this.handleIncoming(m)
+      this.markAsReadThrottled()
+    })
   }
 
   private disconnectFromPeer(): void {
     if (this.messageSubscription?.unsubscribe) {
       this.messageSubscription.unsubscribe()
+    }
+    if (this.systemSub) {
+      this.systemSub.unsubscribe()
+      this.systemSub = null
     }
     this.messageSubscription = null
     this.chatService.disconnect()
@@ -649,10 +709,51 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
   onRdvCreated(evt: any) {
-    console.log('RDV créé', evt);
+    console.log("RDV crÃ©e", evt)
+  }
+
+  ensureConvIdFor(userId: string) {
+    if (this.convIdByPeer[userId]) {
+      return
+    }
+    this.chatService.getHistoryWithPeer(userId, 1).subscribe({
+      next: (res) => {
+        if (res?.conversationId) {
+          this.convIdByPeer[userId] = String(res.conversationId)
+        }
+      }
+    })
+  }
+
+  hasUnreadFor(userId: string): boolean {
+    const convId = this.convIdByPeer[userId]
+    if (!convId) {
+      return false
+    }
+    return (this.unreadByConv[convId] || 0) > 0
+  }
+
+  convUnreadCount(): number {
+    const id = this.currentConvId
+    if (!id) {
+      return 0
+    }
+    return this.unreadByConv[id] || 0
+  }
+
+  private markAsReadNow(convId: string) {
+    this.unreadService.marquerCommeLu(convId)
+      .then(() => { this.lastMarkedAt = Date.now() })
+      .catch(err => console.warn("admin: marquerCommeLu a Ã©chouÃ©"))
+  }
+
+  private markAsReadThrottled() {
+    if (!this.currentConvId) {
+      return
+    }
+    const now = Date.now()
+    if (now - this.lastMarkedAt > 2000) {
+      this.markAsReadNow(this.currentConvId)
+    }
   }
 }
-
-
-
-
