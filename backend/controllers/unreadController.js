@@ -37,7 +37,13 @@ async function postMarquerLu(req, res) {
     try {
         const me = String(req.user._id)
         const convId = req.params.id
-        const at = req.body?.at ? new Date(req.body.at) : new Date()
+        let at
+        if (req.body?.at) {
+            at = new Date(req.body.at)
+        }
+        else {
+            at = new Date()
+        }
 
         const ok = await unreadService.markAsRead(convId, me, at)
         res.json(ok)

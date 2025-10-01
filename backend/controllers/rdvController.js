@@ -41,12 +41,30 @@ async function handleGetRdvsForUser(req, res) {
         const {from, to} = req.query
         const data = await rdvService.listRdvsForUser(String(userId), {from, to})
 
-        const items = (data || []).map(x => ({
-            _id: String(x._id),
-            at: x.date ? new Date(x.date).toISOString() : "",
-            description: x.description || "",
-            userId: x.sharedWithClientId ? String(x.sharedWithClientId) : ""
-        }))
+        const items = (data || []).map(x => {
+            let at = ""
+            if (x.date) {
+                at = new Date(x.date).toISOString()
+            }
+            else {
+                at = ""
+            }
+
+            let userIdValue = ""
+            if (x.sharedWithClientId) {
+                userIdValue = String(x.sharedWithClientId)
+            }
+            else {
+                userIdValue = ""
+            }
+
+            return {
+                _id: String(x._id),
+                at,
+                description: x.description || "",
+                userId: userIdValue
+            }
+        })
 
         return res.status(200).json({ items })
     }

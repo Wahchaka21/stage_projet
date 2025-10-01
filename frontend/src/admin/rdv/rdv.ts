@@ -75,10 +75,20 @@ export class Rdv implements OnInit, OnChanges {
     try {
       const res: any = await this.listRdvService.listForUser(userId)
 
-      const raw =
-        Array.isArray(res?.items) ? res.items :
-          Array.isArray(res?.data) ? res.data :
-            Array.isArray(res) ? res : []
+      let raw: any[]
+
+      if (Array.isArray(res?.items)) {
+        raw = res.items
+      }
+      else if (Array.isArray(res?.data)) {
+        raw = res.data
+      }
+      else if (Array.isArray(res)) {
+        raw = res
+      }
+      else {
+        raw = []
+      }
 
       const arr: RdvItem[] = raw.map((x: any) => this.normalize(x))
 
@@ -97,7 +107,11 @@ export class Rdv implements OnInit, OnChanges {
   }
 
   getCreateButtonLabel(): string {
-    return this.rdvLoading ? "Création..." : "Créer le RDV"
+    if (this.rdvLoading) {
+      return "Création..."
+    }
+
+    return "Créer le RDV"
   }
 
   async handleCreateRdv(): Promise<void> {
