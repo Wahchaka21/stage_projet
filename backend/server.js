@@ -19,6 +19,7 @@ const chatRoutes = require("./routes/chatRoute")
 const cookieParser = require("cookie-parser")
 const { initSockets } = require("./sockets")
 const rdvRoutes = require("./routes/rdvRoute")
+const planClientRoutes = require("./routes/planClientRoute")
 
 const app = express()
 
@@ -66,7 +67,7 @@ app.use("/user", userRoutes)
 app.use("/admin", adminRoutes)
 app.use("/chat", chatRoutes)
 app.use("/rdv", rdvRoutes)
-
+app.use("/planClient", planClientRoutes)
 
 const PORT = config.port || 3000
 const server = app.listen(PORT, () => {

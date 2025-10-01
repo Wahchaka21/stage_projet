@@ -1,5 +1,6 @@
 const adminService = require("./../services/adminService")
 const rdvService = require("../services/rdvService")
+const plantClientService = require("../services/planClientService")
 
 async function handleGetAllUser(req, res) {
   try {
@@ -169,11 +170,85 @@ async function handleDeleteRdv(req, res) {
     }
 }
 
+async function handleCreatePlanClient(req, res) {
+    try {
+        const me = req.user
+        if (!me || !me._id) {
+            return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Auth requise" } })
+        }
+
+        const userId = me._id
+        const body = req.body
+
+        let sharedWithClientId = body.sharedWithClientId
+        let contenu = body.contenu
+
+        const result = await plantClientService.createPlanClient({
+            userId: userId,
+            sharedWithClientId: sharedWithClientId,
+            contenu: contenu
+        })
+
+        return res.status(201).json({
+            message: "plan client crée",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleCreatePlanClient erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
+}
+
+async function handleDeletePlanClient(req, res) {
+    try {
+        const {planClientId} = req.params
+
+        const result = await plantClientService.deletePlanClient(planClientId)
+
+        if(!result) {
+            return res.status(404).json({ error: { code: "NOT_FOUND", message: "Plan client introuvable" } })
+        }
+
+        res.status(200).json({
+            message: "plan client supprimé",
+            data: result
+        })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: {code: err.code, message: err.message, ...err.meta }})
+        }
+
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        if (err && err.code ==="DB_ERROR") {
+            return res.status(500).json({error: {code: err.code, message: err.message, ...err.meta}})
+        }
+
+        console.error("handleDeletePlanClient erreur inattendue :", err)
+        return res.status(500).json({ error: {code: "INTERNAL_ERROR", message: "Erreur interne"}})
+    }
+}
+
 module.exports = {
   handleGetAllUser,
   handleDeleteUser,
   handleChangeUserRole,
   handleUpdateUser,
   handleCreateRdv,
-  handleDeleteRdv
+  handleDeleteRdv,
+  handleCreatePlanClient,
+  handleDeletePlanClient
 }

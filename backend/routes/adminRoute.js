@@ -4,6 +4,7 @@ const isAdmin = require("../middlewares/isAdmin")
 const adminController = require("../controllers/adminController")
 const rdvController = require("../controllers/rdvController")
 const {isValideObjectId} = require("../utils/validator")
+const planClientController = require("../controllers/planClientController")
 
 const router = express.Router()
 
@@ -23,5 +24,10 @@ router.post("/createRdv", isAuth, isAdmin, adminController.handleCreateRdv)
 router.delete("/deleteRdv/:rdvId", isAuth, isAdmin, adminController.handleDeleteRdv)
 
 router.get("/rdv/user/:userId", isAuth, isAdmin, rdvController.handleGetRdvsForUser)
+
+router.post("/createPlanClient", isAuth, isAdmin, adminController.handleCreatePlanClient)
+router.delete("/deletePlanClient/:planClientId", isAuth, isAdmin, adminController.handleDeletePlanClient)
+
+router.get("/planClient/user/:userId", isAuth, isAdmin, planClientController.handleGetPlanClientForUser)
 
 module.exports = router
