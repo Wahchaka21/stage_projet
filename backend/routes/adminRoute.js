@@ -5,6 +5,7 @@ const adminController = require("../controllers/adminController")
 const rdvController = require("../controllers/rdvController")
 const {isValideObjectId} = require("../utils/validator")
 const planClientController = require("../controllers/planClientController")
+const {uploadVideo} = require("../middlewares/uploadVideo")
 
 const router = express.Router()
 
@@ -29,5 +30,8 @@ router.post("/createPlanClient", isAuth, isAdmin, adminController.handleCreatePl
 router.delete("/deletePlanClient/:planClientId", isAuth, isAdmin, adminController.handleDeletePlanClient)
 
 router.get("/planClient/user/:userId", isAuth, isAdmin, planClientController.handleGetPlanClientForUser)
+
+router.post("/planClient/:planClientId/attachVideo", isAuth, isAdmin, uploadVideo.single("video"), adminController.handleUploadVideoForPlan)
+router.delete("/planClient/:planClientId/video/:videoId", isAuth, isAdmin, adminController.handleDeleteVideoFromPlan)
 
 module.exports = router

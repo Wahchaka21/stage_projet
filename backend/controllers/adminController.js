@@ -1,6 +1,7 @@
 const adminService = require("./../services/adminService")
 const rdvService = require("../services/rdvService")
 const plantClientService = require("../services/planClientService")
+const chatService = require("../services/chatService")
 
 async function handleGetAllUser(req, res) {
   try {
@@ -242,13 +243,172 @@ async function handleDeletePlanClient(req, res) {
     }
 }
 
+function mapPlanForResponse(doc) {
+    const out = {}
+
+    if (doc && doc._id) {
+        out._id = String(doc._id)
+    } 
+    else {
+        out._id = ""
+    }
+
+    if (doc && doc.userId) {
+        out.userId = String(doc.userId)
+    } 
+    else {
+        out.userId = ""
+    }
+
+    if (doc && doc.sharedWithClientId) {
+        out.sharedWithClientId = String(doc.sharedWithClientId)
+    } 
+    else {
+        out.sharedWithClientId = ""
+    }
+
+    if (doc && doc.contenu) {
+        out.contenu = String(doc.contenu)
+    } 
+    else {
+        out.contenu = ""
+    }
+
+    out.videos = []
+    if (doc && Array.isArray(doc.videos)) {
+        for (const v of doc.videos) {
+            const it = {}
+            if (v && v.videoId) {
+                it.videoId = String(v.videoId)
+            } 
+            else {
+                it.videoId = ""
+            }
+            if (v && v.url) {
+                it.url = String(v.url)
+            } 
+            else {
+                it.url = ""
+            }
+            if (v && v.name) {
+                it.name = String(v.name)
+            } 
+            else {
+                it.name = ""
+            }
+            if (typeof v.duration === "number") {
+                it.duration = v.duration
+            } 
+            else {
+                it.duration = 0
+            }
+            out.videos.push(it)
+        }
+    }
+
+    return out
+}
+
+async function handleUploadVideoForPlan(req, res) {
+    try {
+        const me = req.user
+        if (!me || me.role !== "admin") {
+            return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès admin requis" } })
+        }
+
+        const file = req.file
+        if (!file) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Aucune vidéo reçue" } })
+        }
+
+        const planClientId = req.params.planClientId
+        const userId = me._id
+
+        const url = `http://localhost:3000/uploads/videos/${file.filename}`
+
+        let duration = 0
+        try {
+            const { ffprobeDuration } = require("../utils/ffprobe")
+            if (typeof ffprobeDuration === "function") {
+                duration = await ffprobeDuration(file.path)
+            }
+        } 
+        catch (_e) {
+            duration = 0
+        }
+
+        const video = await chatService.uploadVideo({
+            userId,
+            name: file.originalname,
+            url,
+            size: file.size,
+            format: file.mimetype,
+            videoDuration: duration
+        })
+
+        const updated = await plantClientService.attachVideo(planClientId, String(video._id))
+
+        return res.status(201).json({
+            message: "Vidéo uploadée et attachée au plan",
+            item: mapPlanForResponse(updated)
+        })
+    } 
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleUploadVideoForPlan erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
+}
+
+async function handleDeleteVideoFromPlan(req, res) {
+    try {
+        const me = req.user
+        if (!me || me.role !== "admin") {
+            return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès admin requis" } })
+        }
+
+        const planClientId = req.params.planClientId
+        const videoId = req.params.videoId
+
+        const updated = await plantClientService.detachVideo(planClientId, videoId)
+
+        return res.status(200).json({
+            message: "Vidéo détachée du plan",
+            item: mapPlanForResponse(updated)
+        })
+    } 
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleDeleteVideoFromPlan erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
+}
+
 module.exports = {
-  handleGetAllUser,
-  handleDeleteUser,
-  handleChangeUserRole,
-  handleUpdateUser,
-  handleCreateRdv,
-  handleDeleteRdv,
-  handleCreatePlanClient,
-  handleDeletePlanClient
+    handleGetAllUser,
+    handleDeleteUser,
+    handleChangeUserRole,
+    handleUpdateUser,
+    handleCreateRdv,
+    handleDeleteRdv,
+    handleCreatePlanClient,
+    handleDeletePlanClient,
+    handleUploadVideoForPlan,
+    handleDeleteVideoFromPlan
 }

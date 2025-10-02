@@ -1,5 +1,83 @@
 const planClientService = require("../services/planClientService")
 
+function mapPlan(doc) {
+    const out = {}
+
+    if (doc && doc._id) {
+        out._id = String(doc._id)
+    } 
+    else {
+        out._id = ""
+    }
+
+    if (doc && doc.contenu) {
+        out.contenu = String(doc.contenu)
+    } 
+    else {
+        out.contenu = ""
+    }
+
+    if (doc && doc.userId) {
+        out.userId = String(doc.userId)
+    } 
+    else {
+        out.userId = ""
+    }
+
+    if (doc && doc.sharedWithClientId) {
+        out.sharedWithClientId = String(doc.sharedWithClientId)
+    } 
+    else {
+        out.sharedWithClientId = ""
+    }
+
+    out.videos = []
+    if (doc && Array.isArray(doc.videos)) {
+        for (const v of doc.videos) {
+            const it = {}
+            if (v && v.videoId) {
+                it.videoId = String(v.videoId)
+            } 
+            else {
+                it.videoId = ""
+            }
+            if (v && v.url) {
+                it.url = String(v.url)
+            } 
+            else {
+                it.url = ""
+            }
+            if (v && v.name) {
+                it.name = String(v.name)
+            } 
+            else {
+                it.name = ""
+            }
+            if (v && typeof v.size === "number") {
+                it.size = v.size
+            } 
+            else {
+                it.size = 0
+            }
+            if (v && v.format) {
+                it.format = String(v.format)
+            } 
+            else {
+                it.format = ""
+            }
+            if (v && typeof v.duration === "number") {
+                 it.duration = v.duration
+            } 
+            else {
+                it.duration = 0
+            }
+            out.videos.push(it)
+        }
+    }
+
+    return out
+}
+
 async function handleGetMyPlanClient(req, res) {
     try {
         const me = req.user
@@ -7,8 +85,18 @@ async function handleGetMyPlanClient(req, res) {
             return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Auth requise" } })
         }
 
-        const data = await planClientService.listPlanClientForClient(String(me._id))
-        return res.status(200).json({ data: data })
+        const from = req.query.from
+        const to = req.query.to
+
+        const data = await planClientService.listPlanClientForClient(String(me._id), { from, to })
+        const items = []
+        if (Array.isArray(data)) {
+            for (const x of data) {
+                items.push(mapPlan(x))
+            }
+        }
+
+        return res.status(200).json({ items })
     }
     catch (err) {
         if (err && err.code === "INVALID_ID") {
@@ -33,32 +121,18 @@ async function handleGetPlanClientForUser(req, res) {
         }
 
         const userId = req.params.userId
-        const data = await planClientService.listPlanClientForUser(String(userId))
+        const from = req.query.from
+        const to = req.query.to
 
+        const data = await planClientService.listPlanClientForUser(String(userId), { from, to })
         const items = []
         if (Array.isArray(data)) {
-            for (let i = 0; i < data.length; i++) {
-                const x = data[i]
-
-                let contenu = ""
-                if (x && x.contenu) {
-                    contenu = String(x.contenu)
-                }
-
-                let userIdValue = ""
-                if (x && x.sharedWithClientId) {
-                    userIdValue = String(x.sharedWithClientId)
-                }
-
-                items.push({
-                    _id: String(x._id),
-                    contenu: contenu,
-                    userId: userIdValue
-                })
+            for (const x of data) {
+                items.push(mapPlan(x))
             }
         }
 
-        return res.status(200).json({ items: items })
+        return res.status(200).json({ items })
     }
     catch (err) {
         if (err && err.code === "INVALID_ID") {
@@ -75,7 +149,73 @@ async function handleGetPlanClientForUser(req, res) {
     }
 }
 
+async function handleAttachVideoToPlan(req, res) {
+    try {
+        const me = req.user
+        if (!me || me.role !== "admin") {
+            return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès admin requis" } })
+        }
+
+        const planClientId = req.params.planClientId
+        const bodyVideoId = req.body.videoId
+
+        if (!bodyVideoId) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "videoId requis" } })
+        }
+
+        const updated = await planClientService.attachVideoToPlan(String(planClientId), String(bodyVideoId))
+        const item = mapPlan(updated)
+
+        return res.status(200).json({ item })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleAttachVideoToPlan erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
+}
+
+async function handleDetachVideoFromPlan(req, res) {
+    try {
+        const me = req.user
+        if (!me || me.role !== "admin") {
+            return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès admin requis" } })
+        }
+
+        const planClientId = req.params.planClientId
+        const videoId = req.params.videoId
+
+        const updated = await planClientService.detachVideoFromPlan(String(planClientId), String(videoId))
+        const item = mapPlan(updated)
+
+        return res.status(200).json({ item })
+    }
+    catch (err) {
+        if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleDetachVideoFromPlan erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
+}
+
 module.exports = {
     handleGetMyPlanClient,
-    handleGetPlanClientForUser
+    handleGetPlanClientForUser,
+    handleAttachVideoToPlan,
+    handleDetachVideoFromPlan
 }

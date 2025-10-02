@@ -104,10 +104,19 @@
               (click)="view = 'rdv'">
               Planifier un RDV
             </button>
+
+            <!-- NOUVEL ONGLET : Plans clients -->
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition"
+              [ngClass]="{ 'bg-[#315f92] text-white': view === 'plans', 'text-[#315f92]': view !== 'plans' }"
+              (click)="view = 'plans'">
+              Plans clients
+            </button>
           </div>
         </div>
 
-        <ng-container *ngIf="view === 'messages'; else rdvView">
+        <!-- Switch 3 vues : messages / rdv / plans -->
+        <ng-container *ngIf="view === 'messages'; else otherViews">
+          <!-- ====== VUE MESSAGERIE (inchangée) ====== -->
           <div id="adminMessages" #msgBox class="overflow-y-auto pr-2">
             <div class="flex flex-col gap-3 pb-6">
               <p class="rounded-xl bg-[#fbde8a]/30 px-4 py-2 text-sm text-[#315f92]" *ngIf="messagesLoading">
@@ -169,7 +178,8 @@
                         <textarea rows="3" [(ngModel)]="editDraft"
                           class="w-full rounded-xl border border-white/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
                         <div class="flex flex-wrap gap-2">
-                          <button type="button" (click)="confirmEdit()"
+                          <button type="button" (click)="confirmEdit()
+                            "
                             class="rounded-full bg-[#fbde8a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:opacity-90">
                             Enregistrer
                           </button>
@@ -324,10 +334,20 @@
           </div>
         </ng-container>
 
-        <ng-template #rdvView>
-          <div class="pt-2">
-            <app-rdv [selectedUserId]="selectedUser?._id || null" [myUserId]="myUserId" (created)="null"></app-rdv>
-          </div>
+        <!-- Autres vues : RDV / PLANS -->
+        <ng-template #otherViews>
+          <ng-container *ngIf="view === 'rdv'; else plansView">
+            <div class="pt-2">
+              <app-rdv [selectedUserId]="selectedUser?._id || null" [myUserId]="myUserId" (created)="null"></app-rdv>
+            </div>
+          </ng-container>
+
+          <ng-template #plansView>
+            <div class="pt-2">
+              <app-plan-client [selectedUserId]="selectedUser?._id || null" [myUserId]="myUserId">
+              </app-plan-client>
+            </div>
+          </ng-template>
         </ng-template>
       </section>
     </div>

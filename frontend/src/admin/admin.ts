@@ -16,6 +16,7 @@ import { VideoFeature } from '../chat/video/video'
 import { scheduleScrollById, shouldStickToBottomById, scrollToBottomById } from '../utils/scroll';
 import { Rdv } from './rdv/rdv';
 import { UnreadService } from '../home/unread.service';
+import { PlanClient } from './plan-client/plan-client';
 
 type AdminUser = {
   _id: string
@@ -41,7 +42,7 @@ type UiMessage = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, Rdv],
+  imports: [CommonModule, FormsModule, RouterLink, Rdv, PlanClient],
   templateUrl: './admin.html'
 })
 export class Admin implements OnInit, OnDestroy {
@@ -71,7 +72,7 @@ export class Admin implements OnInit, OnDestroy {
   editError: string | null = null
   me: any | null = null
   myUserId: string | null = null
-  view: "messages" | "rdv" = "messages"
+  view: "messages" | "rdv" | "plans" = "messages"
 
   private activePeerId: string | null = null
   private messageSubscription: Subscription | null = null

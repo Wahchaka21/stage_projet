@@ -1,1 +1,148 @@
-<p>plan-client works!</p>
+<div class="rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-4 shadow-inner mb-6">
+    <h3 class="text-lg font-semibold text-[#315f92] mb-2">Créer un plan client</h3>
+
+    <div class="mb-2 flex flex-wrap gap-2">
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('bold')">Gras</button>
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('italic')">Italique</button>
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('underline')">Souligné</button>
+
+        <span class="mx-2 inline-block w-px bg-[#d9e2f3]"></span>
+
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('justifyLeft')">Gauche</button>
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('justifyCenter')">Centre</button>
+        <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            (click)="exec('justifyRight')">Droite</button>
+    </div>
+
+    <label class="block text-sm font-semibold text-[#315f92] mb-2">
+        Contenu (exercices, consignes, etc.)
+    </label>
+
+    <div #editor
+        class="min-h-[160px] w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus-within:border-[#315f92]"
+        contenteditable="true" (input)="onEditorInput()">
+    </div>
+
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+        <div class="relative">
+            <button type="button"
+                class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                (click)="toggleCreateAttachMenu()">
+                <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
+                </svg>
+                <span>Pièce jointe</span>
+            </button>
+
+            <div *ngIf="showCreateAttachMenu"
+                class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
+                <button type="button"
+                    class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                    (click)="openNewPlanVideoPicker()">
+                    Ajouter une vidéo
+                </button>
+            </div>
+        </div>
+
+        <div *ngIf="queuedVideos.length > 0" class="flex flex-wrap gap-2">
+            <span *ngFor="let f of queuedVideos; let i = index"
+                class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-xs text-[#315f92]">
+                <span class="max-w-[180px] truncate">{{ f.name }}</span>
+                <button type="button" (click)="removeQueuedVideo(i)" title="Retirer"
+                    class="rounded-full border px-2 leading-none hover:bg-[#315f92]/10">×</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="mt-3 flex items-center gap-3">
+        <button type="button" (click)="handleCreatePlanClient()" [disabled]="planClientLoading"
+            class="rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:opacity-60">
+            {{ getCreateButtonLabel() }}
+        </button>
+
+        <span *ngIf="planClientSucces" class="text-sm font-semibold text-green-600">{{ planClientSucces }}</span>
+        <span *ngIf="planClientError" class="text-sm font-semibold text-red-600">{{ planClientError }}</span>
+    </div>
+</div>
+
+<div class="space-y-4">
+    <p class="text-sm text-[#527bab]" *ngIf="listLoading">Chargement des plans…</p>
+    <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="listError">{{ listError
+        }}</p>
+    <p class="text-sm text-[#527bab]" *ngIf="!listLoading && items.length === 0 && !listError">Aucun plan client pour
+        cet utilisateur.</p>
+
+    <article *ngFor="let item of items"
+        class="rounded-2xl border border-[#e1e9f5] bg-white p-4 text-[#315f92] shadow-sm">
+        <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h4 class="text-base font-semibold">Plan #{{ item._id }}</h4>
+
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <button type="button"
+                        class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                        (click)="toggleAttachMenu(item._id)">
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
+                        </svg>
+                        <span>Pièce jointe</span>
+                    </button>
+
+                    <div *ngIf="showAttachMenuFor === item._id"
+                        class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
+                        <button type="button"
+                            class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                            (click)="openVideoPicker(item._id)">
+                            Ajouter une vidéo
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button"
+                    class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50"
+                    (click)="deletePlantClient(item)">
+                    Supprimer le plan
+                </button>
+            </div>
+        </header>
+
+        <div class="prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"
+            [innerHTML]="sanitize(item.contenu)"></div>
+
+        <div *ngIf="item.videos && item.videos.length > 0" class="mt-4 space-y-2">
+            <h5 class="text-sm font-semibold text-[#315f92]">Vidéos</h5>
+
+            <div *ngFor="let v of item.videos"
+                class="flex items-center justify-between gap-3 rounded-xl border border-[#e1e9f5] bg-[#f7f9fe] px-3 py-2">
+                <div class="min-w-0">
+                    <a [href]="v.url" target="_blank" rel="noopener"
+                        class="block truncate text-sm underline decoration-[#315f92] underline-offset-4">
+                        {{ v.name || 'Vidéo' }}
+                    </a>
+                    <small *ngIf="v.duration && v.duration > 0" class="text-[#527bab]">{{ v.duration }}s</small>
+                </div>
+
+                <button type="button"
+                    class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50"
+                    (click)="detachVideo(item._id, v.videoId)">
+                    Retirer
+                </button>
+            </div>
+        </div>
+    </article>
+</div>
+
+<input #newPlanVideoInput type="file" accept="video/*" class="hidden" multiple
+    (change)="handleNewPlanVideoPicked($event)" />
+<input #planVideoInput type="file" accept="video/*" class="hidden" multiple (change)="handleVideoPicked($event)" />
+
+<div class="mt-4">
+    <p *ngIf="videoUploadLoading" class="text-sm text-[#527bab]">Upload en cours…</p>
+    <p *ngIf="videoUploadSuccess" class="text-sm font-semibold text-green-600">{{ videoUploadSuccess }}</p>
+    <p *ngIf="videoUploadError" class="text-sm font-semibold text-red-600">{{ videoUploadError }}</p>
+</div>

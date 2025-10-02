@@ -1,9 +1,26 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ListPlanClientService, PlanClientItem } from './list-planClient.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ListPlanClientService } from './list-planClient.service';
 import { AddPlanClientService } from './create-planClient.service';
 import { DeletePlanClientService } from './delete-planClient.service';
+import { UploadVideoToPlanService } from './upload-video-to-plan.service';
+import { AttachVideoToPlanService } from './attach-video-to-plan.service';
+
+type PlanVideo = {
+  videoId: string
+  url: string
+  name: string
+  duration: number
+}
+
+type PlanClientItem = {
+  _id: string
+  userId: string
+  contenu: string
+  videos: PlanVideo[]
+}
 
 @Component({
   selector: 'app-plan-client',
@@ -17,26 +34,41 @@ export class PlanClient implements OnInit, OnChanges {
   @Input() selectedUserId: string | null = null
   @Input() myUserId: string | null = null
 
+  @ViewChild("editor", { static: false }) editorRef: ElementRef<HTMLDivElement> | undefined = undefined
   planClientContenu = ""
-  planClientLoading = false
+
+  planClientLoading = false;
   planClientError: string | null = null
   planClientSucces: string | null = null
 
   listLoading = false
   listError: string | null = null
   items: PlanClientItem[] = []
-
   showCreate = true
+
+  showCreateAttachMenu = false
+  showAttachMenuFor: string | null = null
+
+  queuedVideos: File[] = []
+  @ViewChild("newPlanVideoInput") newPlanVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
+
+  @ViewChild('planVideoInput') planVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
+  private targetPlanForUpload: string | null = null
+
+  videoUploadLoading = false
+  videoUploadError: string | null = null
+  videoUploadSuccess: string | null = null
 
   constructor(
     private addPlanClientService: AddPlanClientService,
     private deletePlanClientService: DeletePlanClientService,
-    private listPlanClientService: ListPlanClientService
+    private listPlanClientService: ListPlanClientService,
+    private uploadVideoService: UploadVideoToPlanService,
+    private attachVideoService: AttachVideoToPlanService,
+    private sanitizer: DomSanitizer
   ) { }
 
-  ngOnInit(): void {
-    this.reload()
-  }
+  ngOnInit(): void { this.reload() }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (Object.prototype.hasOwnProperty.call(changes, "selectedUserId")) {
@@ -51,7 +83,7 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   private normalize(item: any): PlanClientItem {
-    const result: PlanClientItem = { _id: "", userId: "", contenu: "" }
+    const result: PlanClientItem = { _id: "", userId: "", contenu: "", videos: [] }
 
     if (item && item._id) {
       result._id = String(item._id)
@@ -71,12 +103,32 @@ export class PlanClient implements OnInit, OnChanges {
       result.contenu = String(item.contenu)
     }
 
+    if (item && Array.isArray(item.videos)) {
+      const vids: PlanVideo[] = []
+      for (const v of item.videos) {
+        const it: PlanVideo = { videoId: "", url: "", name: "", duration: 0 }
+        if (v && v.videoId) {
+          it.videoId = String(v.videoId)
+        }
+        if (v && v.url) {
+          it.url = String(v.url)
+        }
+        if (v && v.name) {
+          it.name = String(v.name)
+        }
+        if (v && typeof v.duration === "number") {
+          it.duration = v.duration
+        }
+        vids.push(it)
+      }
+      result.videos = vids
+    }
+
     return result
   }
 
   private async loadList(): Promise<void> {
     const userId = this.selectedUserId
-
     if (!userId) {
       this.items = []
       this.listLoading = false
@@ -84,9 +136,7 @@ export class PlanClient implements OnInit, OnChanges {
       return
     }
 
-    this.listLoading = true
-    this.listError = null
-
+    this.listLoading = true; this.listError = null
     try {
       const res: any = await this.listPlanClientService.listPlanClientForUser(userId)
 
@@ -101,20 +151,9 @@ export class PlanClient implements OnInit, OnChanges {
         raw = res
       }
 
-      const arr: PlanClientItem[] = []
-      for (let i = 0; i < raw.length; i++) {
-        arr.push(this.normalize(raw[i]))
-      }
-
-      this.items = arr
+      this.items = raw.map(x => this.normalize(x))
+      this.showCreate = this.items.length === 0
       this.listLoading = false
-
-      if (this.items.length === 0) {
-        this.showCreate = true
-      }
-      else {
-        this.showCreate = false
-      }
     }
     catch {
       this.items = []
@@ -132,31 +171,105 @@ export class PlanClient implements OnInit, OnChanges {
     }
   }
 
+  private focusEditor(): void {
+    this.editorRef?.nativeElement?.focus()
+  }
+
+  exec(cmd: string): void {
+    document.execCommand(cmd, false)
+    this.focusEditor()
+  }
+
+  formatBlock(tag: "p" | "h1" | "h2" | "blockquote"): void {
+    document.execCommand("formatBlock", false, tag)
+    this.focusEditor()
+  }
+
+  insertLink(): void {
+    const url = prompt("URL du lien (https://...)")
+    if (url) {
+      document.execCommand("createLink", false, url)
+      this.focusEditor()
+    }
+  }
+
+  clearFormatting(): void {
+    document.execCommand("removeFormat", false)
+    document.execCommand("unlink", false)
+    this.focusEditor()
+  }
+
+  onEditorInput(): void {
+    this.planClientContenu = this.getEditorHtml()
+  }
+
+  private getEditorHtml(): string {
+    if (this.editorRef && this.editorRef.nativeElement) return this.editorRef.nativeElement.innerHTML
+    return ""
+  }
+
+  private isEditorEmpty(html: string): boolean {
+    const div = document.createElement("div"); div.innerHTML = html || ""
+    return (div.textContent || "").trim().length === 0
+  }
+
+  sanitize(html: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html || "")
+  }
+
+  private resetEditor(): void {
+    this.planClientContenu = ""
+    if (this.editorRef && this.editorRef.nativeElement) {
+      this.editorRef.nativeElement.innerHTML = ""
+    }
+  }
+
   async handleCreatePlanClient(): Promise<void> {
-    this.planClientSucces = null
-    this.planClientError = null
+    this.planClientSucces = null; this.planClientError = null
 
     const userId = this.selectedUserId
     if (!userId) {
       return
     }
 
-    if (!this.planClientContenu || this.planClientContenu.trim().length === 0) {
+    const html = this.getEditorHtml()
+    if (this.isEditorEmpty(html)) {
       this.planClientError = "Le contenu ne peut pas être vide"
       return
     }
 
     this.planClientLoading = true
     try {
-      await this.addPlanClientService.addPlanClient({
-        sharedWithClientId: userId,
-        contenu: this.planClientContenu
-      })
+      const res = await this.addPlanClientService.addPlanClient({ sharedWithClientId: userId, contenu: html })
+
+      const createdPlanId = this.extractCreatedId(res)
+      this.planClientSucces = "Plan client créé avec succès"
+
+      if (createdPlanId && this.queuedVideos.length > 0) {
+        for (const file of this.queuedVideos) {
+          try {
+            await this.uploadVideoService.upload(createdPlanId, file)
+          }
+          catch (err) {
+            console.error(err)
+          }
+        }
+        let successSuffix: string
+        if (this.queuedVideos.length) {
+          successSuffix = " + vidéos ajoutées"
+        }
+        else {
+          successSuffix = ""
+        }
+        this.planClientSucces = `Plan client créé${successSuffix}`
+      }
 
       this.planClientLoading = false
-      this.planClientSucces = "Plan client créé avec succès"
-      this.planClientContenu = ""
-      this.loadList()
+      this.resetEditor()
+      this.queuedVideos = []
+      this.showCreateAttachMenu = false
+
+      await this.loadList()
     }
     catch (err: any) {
       this.planClientLoading = false
@@ -172,14 +285,37 @@ export class PlanClient implements OnInit, OnChanges {
     }
   }
 
-  async deletePlantClient(item: PlanClientItem): Promise<void> {
-    if (!item) {
-      return
-    }
-    if (!item._id) {
-      return
+  private extractCreatedId(res: any): string {
+    if (res?.item?._id) {
+      return String(res.item._id)
     }
 
+    if (res?.item?.id) {
+      return String(res.item.id)
+    }
+
+    if (res?._id) {
+      return String(res._id)
+    }
+
+    if (res?.id) {
+      return String(res.id)
+    }
+
+    if (res?.data?._id) {
+      return String(res.data._id)
+    }
+
+    if (res?.data?.id) {
+      return String(res.data.id)
+    }
+    return ""
+  }
+
+  async deletePlantClient(item: PlanClientItem): Promise<void> {
+    if (!item?._id) {
+      return
+    }
     const ok = confirm("Supprimer ce plan client ?")
     if (!ok) {
       return
@@ -187,15 +323,7 @@ export class PlanClient implements OnInit, OnChanges {
 
     try {
       await this.deletePlanClientService.DeletePlanClient(item._id)
-
-      const next: PlanClientItem[] = []
-      for (let i = 0; i < this.items.length; i++) {
-        if (this.items[i]._id !== item._id) {
-          next.push(this.items[i])
-        }
-      }
-      this.items = next
-
+      this.items = this.items.filter(i => i._id !== item._id)
       if (this.items.length === 0) {
         this.showCreate = true
       }
@@ -207,5 +335,116 @@ export class PlanClient implements OnInit, OnChanges {
 
   hasAny(): boolean {
     return this.items.length > 0
+  }
+
+  toggleCreateAttachMenu(): void {
+    this.showCreateAttachMenu = !this.showCreateAttachMenu
+  }
+
+  toggleAttachMenu(planId: string): void {
+    if (this.showAttachMenuFor === planId) {
+      this.showAttachMenuFor = null
+    }
+    else {
+      this.showAttachMenuFor = planId
+    }
+  }
+
+  closeAttachMenus(): void {
+    this.showCreateAttachMenu = false
+    this.showAttachMenuFor = null
+  }
+
+  openNewPlanVideoPicker(): void {
+    this.closeAttachMenus()
+    if (this.newPlanVideoInput?.nativeElement) {
+      this.newPlanVideoInput.nativeElement.value = ""
+      this.newPlanVideoInput.nativeElement.click()
+    }
+  }
+
+  handleNewPlanVideoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement
+    if (!input?.files || input.files.length === 0) {
+      return
+    }
+    for (const f of Array.from(input.files)) {
+      this.queuedVideos.push(f)
+    }
+  }
+
+  removeQueuedVideo(index: number): void {
+    if (index >= 0 && index < this.queuedVideos.length) this.queuedVideos.splice(index, 1)
+  }
+
+  openVideoPicker(planId: string): void {
+    this.videoUploadError = null
+    this.videoUploadSuccess = null
+    this.targetPlanForUpload = planId
+    this.closeAttachMenus()
+
+    if (this.planVideoInput?.nativeElement) {
+      this.planVideoInput.nativeElement.value = ""
+      this.planVideoInput.nativeElement.click()
+    }
+  }
+
+  async handleVideoPicked(event: Event): Promise<void> {
+    this.videoUploadError = null; this.videoUploadSuccess = null
+
+    const input = event.target as HTMLInputElement
+    if (!input?.files || input.files.length === 0) {
+      return
+    }
+
+    const planId = this.targetPlanForUpload
+    if (!planId) {
+      this.videoUploadError = "Plan client inconnu"
+      return
+    }
+
+    this.videoUploadLoading = true
+    try {
+      for (const file of Array.from(input.files)) {
+        await this.uploadVideoService.upload(planId, file)
+      }
+
+      await this.loadList()
+      this.videoUploadSuccess = "Vidéo(s) ajoutée(s) au plan"
+      this.targetPlanForUpload = null
+      this.videoUploadLoading = false
+    }
+    catch {
+      this.videoUploadLoading = false
+      this.videoUploadError = "Upload refusé ou échoué"
+    }
+  }
+
+  async detachVideo(planId: string, videoId: string): Promise<void> {
+    if (!planId || !videoId) {
+      return
+    }
+    const ok = confirm("Retirer cette vidéo du plan ?")
+    if (!ok) {
+      return
+    }
+
+    try {
+      const res = await this.attachVideoService.detach(planId, videoId)
+      if (res?.item) {
+        const updated = this.normalize(res.item)
+        this.items = this.items.map(i => {
+          if (i._id === updated._id) {
+            return updated
+          }
+          else {
+            return i
+          }
+        })
+      }
+    }
+    catch {
+      alert("Impossible de retirer la vidéo")
+    }
   }
 }
