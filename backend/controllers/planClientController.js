@@ -31,6 +31,25 @@ function mapPlan(doc) {
         out.sharedWithClientId = ""
     }
 
+    if (doc && doc.title) {
+        out.title = String(doc.title)
+    } 
+    else {
+        out.title = ""
+    }
+
+    if (doc && doc.createdAt) {
+        try {
+            out.createdAt = new Date(doc.createdAt).toISOString()
+        } 
+        catch {
+            out.createdAt = null
+        }
+    } 
+    else {
+        out.createdAt = null
+    }
+
     out.videos = []
     if (doc && Array.isArray(doc.videos)) {
         for (const v of doc.videos) {
@@ -66,8 +85,8 @@ function mapPlan(doc) {
                 it.format = ""
             }
             if (v && typeof v.duration === "number") {
-                 it.duration = v.duration
-            } 
+                it.duration = v.duration
+            }
             else {
                 it.duration = 0
             }
@@ -76,6 +95,67 @@ function mapPlan(doc) {
     }
 
     return out
+}
+
+async function handleCreatePlanClient(req, res) {
+    try {
+        const me = req.user
+        if (!me || me.role !== "admin") {
+            return res.status(403).json({ error: { code: "FORBIDDEN", message: "Accès admin requis" } })
+        }
+
+        const body = req.body || {}
+        let sharedWithClientId
+        if (body && body.sharedWithClientId) {
+            sharedWithClientId = String(body.sharedWithClientId)
+        }
+        else {
+            sharedWithClientId = ""
+        }
+        let contenu
+        if (body && body.contenu) {
+            contenu = String(body.contenu)
+        }
+        else {
+            contenu = ""
+        }
+        let title
+        if (body && body.title) {
+            title = String(body.title)
+        }
+        else {
+            title = ""
+        }
+
+        if (!sharedWithClientId) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "sharedWithClientId requis" } })
+        }
+        if (!contenu || !contenu.trim()) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "contenu requis" } })
+        }
+
+        const created = await planClientService.createPlanClient({
+            userId: String(me._id),
+            sharedWithClientId,
+            contenu,
+            title,
+        })
+
+        return res.status(201).json({ item: mapPlan(created) })
+    }
+    catch (err) {
+        if (err && err.code === "VALIDATION_ERROR") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "NOT_FOUND") {
+            return res.status(404).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "DB_ERROR") {
+            return res.status(500).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        console.error("handleCreatePlanClient erreur inattendue :", err)
+        return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
+    }
 }
 
 async function handleGetMyPlanClient(req, res) {
@@ -157,13 +237,13 @@ async function handleAttachVideoToPlan(req, res) {
         }
 
         const planClientId = req.params.planClientId
-        const bodyVideoId = req.body.videoId
+        const bodyVideoId = req.body && req.body.videoId ? String(req.body.videoId) : ""
 
         if (!bodyVideoId) {
             return res.status(400).json({ error: { code: "BAD_REQUEST", message: "videoId requis" } })
         }
 
-        const updated = await planClientService.attachVideoToPlan(String(planClientId), String(bodyVideoId))
+        const updated = await planClientService.attachVideo(String(planClientId), String(bodyVideoId))
         const item = mapPlan(updated)
 
         return res.status(200).json({ item })
@@ -193,7 +273,7 @@ async function handleDetachVideoFromPlan(req, res) {
         const planClientId = req.params.planClientId
         const videoId = req.params.videoId
 
-        const updated = await planClientService.detachVideoFromPlan(String(planClientId), String(videoId))
+        const updated = await planClientService.detachVideo(String(planClientId), String(videoId))
         const item = mapPlan(updated)
 
         return res.status(200).json({ item })
@@ -214,6 +294,7 @@ async function handleDetachVideoFromPlan(req, res) {
 }
 
 module.exports = {
+    handleCreatePlanClient,
     handleGetMyPlanClient,
     handleGetPlanClientForUser,
     handleAttachVideoToPlan,

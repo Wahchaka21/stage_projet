@@ -39,6 +39,11 @@ export const routes: Routes = [
             import("../rdv/rdv").then((m) => m.Rdv)
     },
     {
+        path: "cette-semaine",
+        loadComponent: () =>
+            import("../cette-semaine/cette-semaine").then((m) => m.CetteSemaine)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"

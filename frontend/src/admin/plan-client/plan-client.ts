@@ -20,6 +20,8 @@ type PlanClientItem = {
   userId: string
   contenu: string
   videos: PlanVideo[]
+  title?: string
+  createdAt?: string
 }
 
 @Component({
@@ -37,7 +39,7 @@ export class PlanClient implements OnInit, OnChanges {
   @ViewChild("editor", { static: false }) editorRef: ElementRef<HTMLDivElement> | undefined = undefined
   planClientContenu = ""
 
-  planClientLoading = false;
+  planClientLoading = false
   planClientError: string | null = null
   planClientSucces: string | null = null
 
@@ -49,10 +51,12 @@ export class PlanClient implements OnInit, OnChanges {
   showCreateAttachMenu = false
   showAttachMenuFor: string | null = null
 
+  planClientTitre = ""
+
   queuedVideos: File[] = []
   @ViewChild("newPlanVideoInput") newPlanVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
 
-  @ViewChild('planVideoInput') planVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
+  @ViewChild("planVideoInput") planVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
   private targetPlanForUpload: string | null = null
 
   videoUploadLoading = false
@@ -91,6 +95,9 @@ export class PlanClient implements OnInit, OnChanges {
     else if (item && item.id) {
       result._id = String(item.id)
     }
+    else {
+      result._id = ""
+    }
 
     if (item && item.userId) {
       result.userId = String(item.userId)
@@ -98,9 +105,33 @@ export class PlanClient implements OnInit, OnChanges {
     else if (item && item.sharedWithClientId) {
       result.userId = String(item.sharedWithClientId)
     }
+    else {
+      result.userId = ""
+    }
 
     if (item && item.contenu) {
       result.contenu = String(item.contenu)
+    }
+    else {
+      result.contenu = ""
+    }
+
+    if (item && item.title) {
+      result.title = String(item.title)
+    }
+    else {
+      result.title = ""
+    }
+
+    if (item && item.createdAt) {
+      try {
+        result.createdAt = new Date(item.createdAt).toISOString()
+      } catch {
+        result.createdAt = ""
+      }
+    }
+    else {
+      result.createdAt = ""
     }
 
     if (item && Array.isArray(item.videos)) {
@@ -123,6 +154,9 @@ export class PlanClient implements OnInit, OnChanges {
       }
       result.videos = vids
     }
+    else {
+      result.videos = []
+    }
 
     return result
   }
@@ -136,7 +170,8 @@ export class PlanClient implements OnInit, OnChanges {
       return
     }
 
-    this.listLoading = true; this.listError = null
+    this.listLoading = true
+    this.listError = null
     try {
       const res: any = await this.listPlanClientService.listPlanClientForUser(userId)
 
@@ -172,7 +207,9 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   private focusEditor(): void {
-    this.editorRef?.nativeElement?.focus()
+    if (this.editorRef && this.editorRef.nativeElement) {
+      this.editorRef.nativeElement.focus()
+    }
   }
 
   exec(cmd: string): void {
@@ -181,7 +218,7 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   formatBlock(tag: "p" | "h1" | "h2" | "blockquote"): void {
-    document.execCommand("formatBlock", false, tag)
+    document.execCommand('formatBlock', false, tag)
     this.focusEditor()
   }
 
@@ -204,13 +241,22 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   private getEditorHtml(): string {
-    if (this.editorRef && this.editorRef.nativeElement) return this.editorRef.nativeElement.innerHTML
+    if (this.editorRef && this.editorRef.nativeElement) {
+      return this.editorRef.nativeElement.innerHTML
+    }
     return ""
   }
 
   private isEditorEmpty(html: string): boolean {
-    const div = document.createElement("div"); div.innerHTML = html || ""
-    return (div.textContent || "").trim().length === 0
+    const div = document.createElement("div")
+    div.innerHTML = html || ""
+    const txt = (div.textContent || "").trim()
+    if (txt.length === 0) {
+      return true
+    }
+    else {
+      return false
+    }
   }
 
   sanitize(html: string): SafeHtml {
@@ -225,7 +271,8 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   async handleCreatePlanClient(): Promise<void> {
-    this.planClientSucces = null; this.planClientError = null
+    this.planClientSucces = null
+    this.planClientError = null
 
     const userId = this.selectedUserId
     if (!userId) {
@@ -240,7 +287,11 @@ export class PlanClient implements OnInit, OnChanges {
 
     this.planClientLoading = true
     try {
-      const res = await this.addPlanClientService.addPlanClient({ sharedWithClientId: userId, contenu: html })
+      const res = await this.addPlanClientService.addPlanClient({
+        sharedWithClientId: userId,
+        contenu: html,
+        title: this.planClientTitre || ""
+      })
 
       const createdPlanId = this.extractCreatedId(res)
       this.planClientSucces = "Plan client créé avec succès"
@@ -254,18 +305,14 @@ export class PlanClient implements OnInit, OnChanges {
             console.error(err)
           }
         }
-        let successSuffix: string
-        if (this.queuedVideos.length) {
-          successSuffix = " + vidéos ajoutées"
+        if (this.queuedVideos.length > 0) {
+          this.planClientSucces = "Plan client créé + vidéos ajoutées"
         }
-        else {
-          successSuffix = ""
-        }
-        this.planClientSucces = `Plan client créé${successSuffix}`
       }
 
       this.planClientLoading = false
       this.resetEditor()
+      this.planClientTitre = ""
       this.queuedVideos = []
       this.showCreateAttachMenu = false
 
@@ -289,31 +336,28 @@ export class PlanClient implements OnInit, OnChanges {
     if (res?.item?._id) {
       return String(res.item._id)
     }
-
-    if (res?.item?.id) {
+    else if (res?.item?.id) {
       return String(res.item.id)
     }
-
-    if (res?._id) {
+    else if (res?._id) {
       return String(res._id)
     }
-
-    if (res?.id) {
+    else if (res?.id) {
       return String(res.id)
     }
-
-    if (res?.data?._id) {
+    else if (res?.data?._id) {
       return String(res.data._id)
     }
-
-    if (res?.data?.id) {
+    else if (res?.data?.id) {
       return String(res.data.id)
     }
-    return ""
+    else {
+      return ""
+    }
   }
 
   async deletePlantClient(item: PlanClientItem): Promise<void> {
-    if (!item?._id) {
+    if (!item || !item._id) {
       return
     }
     const ok = confirm("Supprimer ce plan client ?")
@@ -334,7 +378,12 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   hasAny(): boolean {
-    return this.items.length > 0
+    if (this.items.length > 0) {
+      return true
+    }
+    else {
+      return false
+    }
   }
 
   toggleCreateAttachMenu(): void {
@@ -357,7 +406,7 @@ export class PlanClient implements OnInit, OnChanges {
 
   openNewPlanVideoPicker(): void {
     this.closeAttachMenus()
-    if (this.newPlanVideoInput?.nativeElement) {
+    if (this.newPlanVideoInput && this.newPlanVideoInput.nativeElement) {
       this.newPlanVideoInput.nativeElement.value = ""
       this.newPlanVideoInput.nativeElement.click()
     }
@@ -365,7 +414,7 @@ export class PlanClient implements OnInit, OnChanges {
 
   handleNewPlanVideoPicked(event: Event): void {
     const input = event.target as HTMLInputElement
-    if (!input?.files || input.files.length === 0) {
+    if (!input || !input.files || input.files.length === 0) {
       return
     }
     for (const f of Array.from(input.files)) {
@@ -374,7 +423,9 @@ export class PlanClient implements OnInit, OnChanges {
   }
 
   removeQueuedVideo(index: number): void {
-    if (index >= 0 && index < this.queuedVideos.length) this.queuedVideos.splice(index, 1)
+    if (index >= 0 && index < this.queuedVideos.length) {
+      this.queuedVideos.splice(index, 1)
+    }
   }
 
   openVideoPicker(planId: string): void {
@@ -383,17 +434,18 @@ export class PlanClient implements OnInit, OnChanges {
     this.targetPlanForUpload = planId
     this.closeAttachMenus()
 
-    if (this.planVideoInput?.nativeElement) {
+    if (this.planVideoInput && this.planVideoInput.nativeElement) {
       this.planVideoInput.nativeElement.value = ""
       this.planVideoInput.nativeElement.click()
     }
   }
 
   async handleVideoPicked(event: Event): Promise<void> {
-    this.videoUploadError = null; this.videoUploadSuccess = null
+    this.videoUploadError = null
+    this.videoUploadSuccess = null
 
     const input = event.target as HTMLInputElement
-    if (!input?.files || input.files.length === 0) {
+    if (!input || !input.files || input.files.length === 0) {
       return
     }
 
@@ -431,7 +483,7 @@ export class PlanClient implements OnInit, OnChanges {
 
     try {
       const res = await this.attachVideoService.detach(planId, videoId)
-      if (res?.item) {
+      if (res && res.item) {
         const updated = this.normalize(res.item)
         this.items = this.items.map(i => {
           if (i._id === updated._id) {

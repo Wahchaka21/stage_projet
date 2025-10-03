@@ -12,7 +12,7 @@ async function createPlanClient(planClientData) {
             const fields = {}
             if (err.errors) {
                 for (const key in err.errors) {
-                fields[key] = err.errors[key].message
+                    fields[key] = err.errors[key].message
                 }
             }
             throw persoError("VALIDATION_ERROR", "Erreur validation création du plan client", { fields })
@@ -45,12 +45,50 @@ async function deletePlanClient(planClientId) {
     }
 }
 
-async function listPlanClientForClient(clientId) {
+function makeDateFilter(opts) {
+    if (!opts) {
+        return null
+    }
+
+    const filter = {}
+
+    if (opts.from) {
+        const fromDate = new Date(opts.from)
+        if (!Number.isNaN(fromDate.getTime())) {
+            filter.$gte = fromDate
+        }
+    }
+
+    if (opts.to) {
+        const toDate = new Date(opts.to)
+        if (!Number.isNaN(toDate.getTime())) {
+            filter.$lte = toDate
+        }
+    }
+
+    if (Object.keys(filter).length === 0) {
+        return null
+    }
+
+    return filter
+}
+
+async function listPlanClientForClient(clientId, opts) {
     try {
         if (!clientId || !isValideObjectId(clientId)) {
             throw persoError("INVALID_ID", "Identifiant client invalide")
         }
-        return await planClientSchema.find({ sharedWithClientId: clientId }).sort({ createdAt: -1 }).lean()
+        const filter = { sharedWithClientId: clientId }
+        const createdAt = makeDateFilter(opts)
+
+        if(createdAt) {
+            filter.createdAt = createdAt
+        }
+
+        return await planClientSchema
+            .find(filter)
+            .sort({ createdAt: 1 })
+            .lean()
     }
     catch (err) {
         if (err && err.type) {
@@ -60,13 +98,23 @@ async function listPlanClientForClient(clientId) {
     }
 }
 
-async function listPlanClientForUser(userId) {
+async function listPlanClientForUser(userId, opts) {
     try {
         if (!userId || !isValideObjectId(userId)) {
             throw persoError("INVALID_ID", "Identifiant utilisateur invalide")
         }
 
-        return await planClientSchema.find({ sharedWithClientId: userId }).sort({ createdAt: -1 }).lean()
+        const filter = { sharedWithClientId: userId }
+        const createdAt = makeDateFilter(opts)
+
+        if (createdAt) {
+            filter.createdAt = createdAt
+        }
+
+        return await planClientSchema
+            .find(filter)
+            .sort({ createdAt: 1 })
+            .lean()
     }
     catch (err) {
         if (err && err.type) {

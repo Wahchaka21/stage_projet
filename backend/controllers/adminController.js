@@ -178,20 +178,49 @@ async function handleCreatePlanClient(req, res) {
             return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Auth requise" } })
         }
 
-        const userId = me._id
-        const body = req.body
+        const userId = String(me._id)
+        const body = req.body || {}
 
-        let sharedWithClientId = body.sharedWithClientId
-        let contenu = body.contenu
+        let sharedWithClientId
+        if (body && body.sharedWithClientId) {
+            sharedWithClientId = String(body.sharedWithClientId)
+        }
+        else {
+            sharedWithClientId = ""
+        }
+
+        let contenu
+        if (body && body.contenu) {
+            contenu = String(body.contenu)
+        }
+        else {
+            contenu = ""
+        }
+
+        let title
+        if (body && body.title) {
+            title = String(body.title)
+        }
+        else {
+            title = ""
+        }
+
+        if (!sharedWithClientId) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "sharedWithClientId requis" } })
+        }
+        if (!contenu || !contenu.trim()) {
+            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "contenu requis" } })
+        }
 
         const result = await plantClientService.createPlanClient({
-            userId: userId,
-            sharedWithClientId: sharedWithClientId,
-            contenu: contenu
+            userId,
+            sharedWithClientId,
+            contenu,
+            title,
         })
 
         return res.status(201).json({
-            message: "plan client crée",
+            message: "plan client cree",
             data: result
         })
     }
@@ -209,6 +238,7 @@ async function handleCreatePlanClient(req, res) {
         return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Erreur interne" } })
     }
 }
+
 
 async function handleDeletePlanClient(req, res) {
     try {

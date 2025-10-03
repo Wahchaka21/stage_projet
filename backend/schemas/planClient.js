@@ -13,6 +13,10 @@ const planClientSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    title: {
+        type: String,
+        default: ""
+    },
     contenu: {
         type: String,
         trim: true,

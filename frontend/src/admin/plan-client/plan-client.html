@@ -3,6 +3,10 @@
     <div class="rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-4 shadow-inner mb-6">
         <h3 class="text-lg font-semibold text-[#315f92] mb-2">Créer un plan client</h3>
 
+        <label class="block text-sm font-semibold text-[#315f92] mb-2">Titre du plan</label>
+        <input type="text" [(ngModel)]="planClientTitre" placeholder="Ex : Séance 1"
+            class="mb-3 w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none" />
+
         <div class="mb-2 flex flex-wrap gap-2">
             <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
                 (click)="exec('bold')">Gras</button>
@@ -25,7 +29,7 @@
             Contenu (exercices, consignes, etc.)
         </label>
 
-        <div #editor contenteditable="true" (input)="onEditorInput()" class="h-[40vh] overflow-y-auto
+        <div #editor contenteditable="true" (input)="onEditorInput()" class="h-[30vh] overflow-y-auto
              w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2
              text-sm text-[#315f92] focus-within:border-[#315f92] focus:outline-none
              whitespace-pre-wrap break-words">
@@ -84,7 +88,10 @@
         <article *ngFor="let item of items"
             class="rounded-2xl border border-[#e1e9f5] bg-white p-4 text-[#315f92] shadow-sm">
             <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h4 class="text-base font-semibold">Plan #{{ item._id }}</h4>
+                <!-- Affichage du titre -->
+                <h4 class="text-base font-semibold">
+                    {{ item.title && item.title.trim() ? item.title : ('Plan #' + item._id) }}
+                </h4>
 
                 <div class="flex items-center gap-2">
                     <div class="relative">

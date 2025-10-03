@@ -10,10 +10,10 @@ export class AddPlanClientService {
 
     constructor(private http: HttpClient) { }
 
-    async addPlanClient(planClientData: any): Promise<any> {
+    async addPlanClient(payload: { sharedWithClientId: string; contenu: string; title?: string }): Promise<any> {
         try {
             const response = await firstValueFrom(
-                this.http.post(this.apiUrl, planClientData, { withCredentials: true })
+                this.http.post(this.apiUrl, payload, { withCredentials: true })
             )
             return response
         }
