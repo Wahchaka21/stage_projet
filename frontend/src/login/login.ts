@@ -24,8 +24,8 @@ export class Login {
     private router: Router
   ) {
     this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]],
+      email: ["", [Validators.required, Validators.email]],
+      password: ["", [Validators.required]],
       remember: [false],
     })
   }
@@ -50,12 +50,12 @@ export class Login {
 
     this.auth.login({ email, password, remember }).subscribe({
       next: () => {
-        this.serverOk.set('Connexion reussie !')
+        this.serverOk.set("Connexion reussie !")
         this.waiting.set(false)
-        this.router.navigateByUrl('/accueil')
+        this.router.navigateByUrl("/accueil")
       },
       error: (err) => {
-        let msg = 'Email ou mot de passe incorrect'
+        let msg = "Email ou mot de passe incorrect"
         if (err && err.error && err.error.error) {
           msg = err.error.error
         }

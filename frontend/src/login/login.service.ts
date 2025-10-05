@@ -30,8 +30,8 @@ export class LoginService {
 
     private readStorage(storage: Storage): string | null {
         try {
-            const value = storage.getItem('token')
-            if (value && typeof value === 'string' && value.trim().length > 0) {
+            const value = storage.getItem("token")
+            if (value && typeof value === "string" && value.trim().length > 0) {
                 return value
             }
             else {
@@ -52,7 +52,7 @@ export class LoginService {
         }
 
         try {
-            sessionStorage.removeItem('token')
+            sessionStorage.removeItem("token")
         }
         catch (err) {
             console.error(err)
@@ -64,7 +64,7 @@ export class LoginService {
 
         if (remember) {
             try {
-                localStorage.setItem('token', token)
+                localStorage.setItem("token", token)
             }
             catch (err) {
                 console.error(err)
@@ -72,7 +72,7 @@ export class LoginService {
         }
         else {
             try {
-                sessionStorage.setItem('token', token)
+                sessionStorage.setItem("token", token)
             }
             catch (err) {
                 console.error(err)
