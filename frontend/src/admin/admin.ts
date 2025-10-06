@@ -59,6 +59,10 @@ export class Admin implements OnInit, OnDestroy {
   messagesError: string | null = null
   messageDraft = ""
   showAttachmentMenu = false
+  showActionModal: boolean = false
+  confirmOpen = false
+  confirmKind: "message" | "photo" | "video" | "photo-preview" | null = null
+  confirmTargetMessageId: string | null = null
 
   @ViewChild("photoInput") photoInput: ElementRef<HTMLInputElement> | undefined = undefined
   @ViewChild("videoInput") videoInput: ElementRef<HTMLInputElement> | undefined = undefined
@@ -756,5 +760,39 @@ export class Admin implements OnInit, OnDestroy {
     if (now - this.lastMarkedAt > 2000) {
       this.markAsReadNow(this.currentConvId)
     }
+  }
+
+  cancelConfirm(): void {
+    this.resetConfirmState()
+  }
+
+  async confirmDeletion(): Promise<void> {
+    const kind = this.confirmKind
+    try {
+      if (kind === "photo-preview") {
+        await this.deletePhotoFromPreview()
+      }
+      else if (kind === "message" || kind === "photo" || kind === "video") {
+        if (this.confirmTargetMessageId) {
+          await this.deleteMessage(this.confirmTargetMessageId)
+        }
+      }
+    }
+    finally {
+      this.resetConfirmState()
+    }
+  }
+
+  private resetConfirmState(): void {
+    this.confirmOpen = false
+    this.confirmKind = null
+    this.confirmTargetMessageId = null
+  }
+
+  openConfirm(kind: "message" | "photo" | "video" | "photo-preview", targetMessageId: string | null = null): void {
+    this.showActionModal = false
+    this.confirmKind = kind
+    this.confirmTargetMessageId = targetMessageId ?? null
+    this.confirmOpen = true
   }
 }

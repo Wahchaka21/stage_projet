@@ -90,7 +90,7 @@
 
         <div class="flex items-center gap-2">
           <div class="inline-flex overflow-hidden rounded-full border border-[#e1e9f5] shadow-sm">
-            <button type="button" class="relative h-10 px-5 text-sm font-semibold transition"
+            <button type="button" class="relative h-10 px-5 text-sm font-semibold transition cursor-pointer"
               [ngClass]="{ 'bg-[#315f92] text-white': view === 'messages', 'text-[#315f92]': view !== 'messages' }"
               (click)="view = 'messages'">
               Messagerie
@@ -99,14 +99,13 @@
                 title="Nouveaux messages"></span>
             </button>
 
-            <button type="button" class="h-10 px-5 text-sm font-semibold transition"
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition cursor-pointer"
               [ngClass]="{ 'bg-[#315f92] text-white': view === 'rdv', 'text-[#315f92]': view !== 'rdv' }"
               (click)="view = 'rdv'">
               Planifier un RDV
             </button>
 
-            <!-- NOUVEL ONGLET : Plans clients -->
-            <button type="button" class="h-10 px-5 text-sm font-semibold transition"
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition cursor-pointer"
               [ngClass]="{ 'bg-[#315f92] text-white': view === 'plans', 'text-[#315f92]': view !== 'plans' }"
               (click)="view = 'plans'">
               Plans clients
@@ -114,9 +113,7 @@
           </div>
         </div>
 
-        <!-- Switch 3 vues : messages / rdv / plans -->
         <ng-container *ngIf="view === 'messages'; else otherViews">
-          <!-- ====== VUE MESSAGERIE (inchangée) ====== -->
           <div id="adminMessages" #msgBox class="overflow-y-auto pr-2">
             <div class="flex flex-col gap-3 pb-6">
               <p class="rounded-xl bg-[#fbde8a]/30 px-4 py-2 text-sm text-[#315f92]" *ngIf="messagesLoading">
@@ -147,9 +144,9 @@
                           (click)="openPhotoFromMessage(message)" />
                         <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                           <button type="button" (click)="openPhotoFromMessage(message)"
-                            class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Voir</button>
-                          <button type="button" (click)="deleteMessage(message.id)"
-                            class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10">Supprimer</button>
+                            class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Voir</button>
+                          <button type="button" (click)="openConfirm('photo', message.id)"
+                            class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10 cursor-pointer">Supprimer</button>
                         </div>
                       </div>
                     </ng-container>
@@ -163,9 +160,9 @@
                           </a>
                           <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                             <button type="button" (click)="downloadVideo(message)"
-                              class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Télécharger</button>
-                            <button type="button" (click)="deleteMessage(message.id)"
-                              class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10">Supprimer</button>
+                              class="rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20 cursor-pointer">Télécharger</button>
+                            <button type="button" (click)="openConfirm('video', message.id)"
+                              class="rounded-full border border-current px-3 py-1 text-red-200 transition hover:bg-white/10 cursor-pointer">Supprimer</button>
                           </div>
                         </div>
                       </ng-container>
@@ -180,11 +177,11 @@
                         <div class="flex flex-wrap gap-2">
                           <button type="button" (click)="confirmEdit()
                             "
-                            class="rounded-full bg-[#fbde8a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:opacity-90">
+                            class="rounded-full bg-[#fbde8a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:opacity-90 cursor-pointer">
                             Enregistrer
                           </button>
                           <button type="button" (click)="cancelEdit()"
-                            class="rounded-full border border-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10">
+                            class="rounded-full border border-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10 cursor-pointer">
                             Annuler
                           </button>
                         </div>
@@ -195,7 +192,7 @@
                         class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                         <button type="button" (click)="openEdit(message)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Modifier</button>
-                        <button type="button" (click)="deleteMessage(message.id)"
+                        <button type="button" (click)="openConfirm('message', message.id)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Supprimer</button>
                         <button type="button" (click)="copyMessage(message.id)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#fbde8a] transition hover:bg-[#fbde8a]/20">Copier</button>
@@ -220,9 +217,9 @@
                           (click)="openPhotoFromMessage(message)" />
                         <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                           <button type="button" (click)="openPhotoFromMessage(message)"
-                            class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Voir</button>
-                          <button type="button" (click)="deleteMessage(message.id)"
-                            class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10">Supprimer</button>
+                            class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Voir</button>
+                          <button type="button" (click)="openConfirm('photo', message.id)"
+                            class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10 cursor-pointer">Supprimer</button>
                         </div>
                       </div>
                     </ng-container>
@@ -236,9 +233,9 @@
                           </a>
                           <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                             <button type="button" (click)="downloadVideo(message)"
-                              class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Télécharger</button>
-                            <button type="button" (click)="deleteMessage(message.id)"
-                              class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10">Supprimer</button>
+                              class="rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Télécharger</button>
+                            <button type="button" (click)="openConfirm('video', message.id)"
+                              class="rounded-full border border-current px-3 py-1 text-red-600 transition hover:bg-[#315f92]/10 cursor-pointer">Supprimer</button>
                           </div>
                         </div>
                       </ng-container>
@@ -252,9 +249,9 @@
                           class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] shadow-inner focus:border-[#315f92] focus:outline-none"></textarea>
                         <div class="flex flex-wrap gap-2">
                           <button type="button" (click)="confirmEdit()"
-                            class="rounded-full bg-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#24476e]">Enregistrer</button>
+                            class="rounded-full bg-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#24476e] cursor-pointer">Enregistrer</button>
                           <button type="button" (click)="cancelEdit()"
-                            class="rounded-full border border-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:bg-[#315f92]/10">Annuler</button>
+                            class="rounded-full border border-[#315f92] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer">Annuler</button>
                         </div>
                         <p *ngIf="editError" class="text-xs font-semibold text-red-600">{{ editError }}</p>
                       </div>
@@ -263,7 +260,7 @@
                         class="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
                         <button type="button" (click)="openEdit(message)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Modifier</button>
-                        <button type="button" (click)="deleteMessage(message.id)"
+                        <button type="button" (click)="openConfirm('message', message.id)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Supprimer</button>
                         <button type="button" (click)="copyMessage(message.id)"
                           class="cursor-pointer rounded-full border border-current px-3 py-1 text-[#315f92] transition hover:bg-[#315f92]/10">Copier</button>
@@ -324,17 +321,40 @@
                 class="max-h-[80vh] w-full rounded-2xl object-contain" />
               <div class="mt-4 flex flex-wrap justify-center gap-2">
                 <button type="button"
-                  class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-                  (click)="deletePhotoFromPreview()">Supprimer</button>
+                  class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 cursor-pointer"
+                  (click)="openConfirm('photo-preview')">Supprimer</button>
                 <button type="button"
-                  class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30"
+                  class="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/30 cursor-pointer"
                   (click)="cancelPhotoPreview()">Fermer</button>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="confirmOpen" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4"
+            (click)="cancelConfirm()">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 text-[#315f92] shadow-2xl"
+              (click)="$event.stopPropagation()">
+              <h3 class="text-lg font-semibold">Confirmer la suppression</h3>
+              <p class="mt-3 text-sm text-[#527bab]">
+                <ng-container [ngSwitch]="confirmKind">
+                  <ng-container *ngSwitchCase="'photo'">Etes-vous sur de vouloir supprimer cette photo ?</ng-container>
+                  <ng-container *ngSwitchCase="'photo-preview'">Etes-vous sur de vouloir supprimer cette photo
+                    ?</ng-container>
+                  <ng-container *ngSwitchCase="'video'">Etes-vous sur de vouloir supprimer cette video ?</ng-container>
+                  <ng-container *ngSwitchDefault>Etes-vous sur de vouloir supprimer ce message ?</ng-container>
+                </ng-container>
+              </p>
+              <div class="mt-6 flex flex-wrap justify-end gap-3">
+                <button type="button"
+                  class="rounded-full border border-[#315f92] px-4 py-2 text-sm font-semibold text-[#315f92] transition hover:bg-[#315f92]/10"
+                  (click)="cancelConfirm()">Annuler</button>
+                <button type="button"
+                  class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                  (click)="confirmDeletion()">Supprimer</button>
               </div>
             </div>
           </div>
         </ng-container>
 
-        <!-- Autres vues : RDV / PLANS -->
         <ng-template #otherViews>
           <ng-container *ngIf="view === 'rdv'; else plansView">
             <div class="pt-2">

@@ -8,20 +8,26 @@
             class="mb-3 w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none" />
 
         <div class="mb-2 flex flex-wrap gap-2">
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('bold')">Gras</button>
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('italic')">Italique</button>
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('underline')">Souligné</button>
 
             <span class="mx-2 inline-block w-px bg-[#d9e2f3]"></span>
 
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('justifyLeft')">Gauche</button>
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('justifyCenter')">Centre</button>
-            <button type="button" class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white"
+            <button type="button"
+                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
                 (click)="exec('justifyRight')">Droite</button>
         </div>
 
@@ -38,7 +44,7 @@
         <div class="mt-3 flex flex-wrap items-center gap-3">
             <div class="relative">
                 <button type="button"
-                    class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                    class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
                     (click)="toggleCreateAttachMenu()">
                     <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
@@ -49,7 +55,7 @@
                 <div *ngIf="showCreateAttachMenu"
                     class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
                     <button type="button"
-                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
                         (click)="openNewPlanVideoPicker()">
                         Ajouter une vidéo
                     </button>
@@ -96,7 +102,7 @@
                 <div class="flex items-center gap-2">
                     <div class="relative">
                         <button type="button"
-                            class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                            class="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
                             (click)="toggleAttachMenu(item._id)">
                             <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
@@ -107,7 +113,7 @@
                         <div *ngIf="showAttachMenuFor === item._id"
                             class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
                             <button type="button"
-                                class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
+                                class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
                                 (click)="openVideoPicker(item._id)">
                                 Ajouter une vidéo
                             </button>
@@ -115,7 +121,7 @@
                     </div>
 
                     <button type="button"
-                        class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50"
+                        class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50 cursor-pointer"
                         (click)="deletePlantClient(item)">
                         Supprimer le plan
                     </button>
@@ -154,7 +160,7 @@
 <input #planVideoInput type="file" accept="video/*" class="hidden" multiple (change)="handleVideoPicked($event)" />
 
 <div class="mt-4">
-    <p *ngIf="videoUploadLoading" class="text-sm text-[#527bab]">Upload en cours…</p>
+    <p *ngIf="videoUploadLoading" class="text-sm text-[#527bab]">Upload en cours...</p>
     <p *ngIf="videoUploadSuccess" class="text-sm font-semibold text-green-600">{{ videoUploadSuccess }}</p>
     <p *ngIf="videoUploadError" class="text-sm font-semibold text-red-600">{{ videoUploadError }}</p>
 </div>
