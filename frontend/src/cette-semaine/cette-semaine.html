@@ -1,10 +1,9 @@
 <div class="min-h-svh bg-gradient-to-b from-[#315f92] to-[#24476e]">
-    <!-- Header (cohérent avec home, version light et autonome) -->
     <header class="sticky top-0 z-10 px-4 pt-4 pb-3 bg-gradient-to-b from-[#315f92] to-transparent">
         <div class="flex items-center justify-between">
             <div class="text-white">
-                <p class="text-xs uppercase tracking-wide opacity-80">Cette semaine</p>
-                <h1 class="text-xl font-bold leading-tight">Vos séances</h1>
+                <p class="text-xs uppercase tracking-wide opacity-80">Plans clients</p>
+                <h1 class="text-xl font-bold leading-tight">Vos seances</h1>
             </div>
 
             <a routerLink="/notifications"
@@ -18,18 +17,15 @@
         </div>
     </header>
 
-    <!-- Contenu principal -->
     <main class="-mt-2 rounded-t-3xl bg-white p-4 pt-6">
-        <h2 class="text-base font-semibold text-[#315f92] mb-3">Vos séances de la semaine</h2>
+        <h2 class="text-base font-semibold text-[#315f92] mb-3">Toutes vos seances</h2>
 
         <p class="text-sm text-[#527bab]" *ngIf="loading">Chargement…</p>
         <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="error">{{ error }}
         </p>
 
-        <p class="text-sm text-[#527bab]" *ngIf="!loading && !error && sessions.length === 0">
-            Aucune séance planifiée pour cette semaine.
-        </p>
-
+        <p class="text-sm text-[#527bab]" *ngIf="!loading && !error && sessions.length === 0">Aucune seance disponible
+            pour le moment.</p>
         <section *ngFor="let s of sessions; let i = index; trackBy: trackById"
             class="rounded-2xl border border-[#e1e9f5] bg-white shadow-sm mb-3">
             <button type="button"
@@ -49,7 +45,6 @@
             </button>
 
             <div *ngIf="expandedId === s._id" class="px-4 pb-4">
-                <!-- IMPORTANT : pas de 'prose' ici pour ne rien normaliser -->
                 <div class="content-html" [innerHTML]="sanitize(s.contenu)"></div>
 
                 <div *ngIf="s.videos && s.videos.length > 0" class="mt-4 space-y-2">

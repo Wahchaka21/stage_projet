@@ -42,36 +42,16 @@ export class CetteSemaine implements OnInit {
   ) { }
 
   async ngOnInit() {
-    await this.loadThisWeek()
+    await this.loadPlans()
     await this.fetchCoach()
   }
 
-  private startOfWeek(d: Date): Date {
-    const date = new Date(d)
-    const day = date.getDay() || 7
-    if (day !== 1) {
-      date.setDate(date.getDate() - (day - 1))
-    }
-    date.setHours(0, 0, 0, 0)
-    return date
-  }
 
-  private endOfWeek(d: Date): Date {
-    const start = this.startOfWeek(d)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 7)
-    end.setMilliseconds(-1)
-    return end
-  }
-
-  async loadThisWeek() {
+  async loadPlans() {
     this.loading = true
     this.error = null
     try {
-      const now = new Date()
-      const from = this.startOfWeek(now)
-      const to = this.endOfWeek(now)
-      const list = await this.planClientService.listMyPlanClient({ from, to })
+      const list = await this.planClientService.listMyPlanClient()
       const sorted = [...list].sort((a, b) => {
         let ta = 0
         if (a.createdAt) {
@@ -83,7 +63,7 @@ export class CetteSemaine implements OnInit {
           tb = new Date(b.createdAt).getTime()
         }
 
-        return ta - tb
+        return tb - ta
       })
       this.sessions = sorted
     }

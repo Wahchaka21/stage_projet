@@ -42,6 +42,11 @@ export class PlanClient implements OnInit, OnChanges {
   planClientLoading = false
   planClientError: string | null = null
   planClientSucces: string | null = null
+  mode: "create" | "manage" = "create"
+  deleteConfirmOpen = false
+  deleteTargetId: string | null = null
+  deleteTargetTitle = ""
+  deleteError: string | null = null
 
   listLoading = false
   listError: string | null = null
@@ -80,10 +85,46 @@ export class PlanClient implements OnInit, OnChanges {
     }
   }
 
+  switchToCreate(): void {
+    this.mode = "create"
+    this.planClientSucces = null
+    this.planClientError = null
+    this.cancelDeletePlan()
+    this.items = []
+    this.showCreate = true
+    this.closeAttachMenus()
+    this.videoUploadError = null
+    this.videoUploadSuccess = null
+    this.videoUploadLoading = false
+  }
+
+  switchToManage(): void {
+    this.mode = "manage"
+    this.planClientSucces = null
+    this.planClientError = null
+    this.cancelDeletePlan()
+    this.showCreate = false
+    this.items = []
+    this.closeAttachMenus()
+    this.videoUploadError = null
+    this.videoUploadSuccess = null
+    this.videoUploadLoading = false
+    this.queuedVideos = []
+    this.loadList()
+  }
+
   private reload(): void {
     this.planClientSucces = null
     this.planClientError = null
-    this.loadList()
+    this.cancelDeletePlan()
+    this.closeAttachMenus()
+    if (this.mode === "manage") {
+      this.loadList()
+    }
+    else {
+      this.items = []
+      this.showCreate = true
+    }
   }
 
   private normalize(item: any): PlanClientItem {
@@ -356,26 +397,69 @@ export class PlanClient implements OnInit, OnChanges {
     }
   }
 
-  async deletePlantClient(item: PlanClientItem): Promise<void> {
+  openDeletePlan(item: PlanClientItem): void {
     if (!item || !item._id) {
       return
     }
-    const ok = confirm("Supprimer ce plan client ?")
-    if (!ok) {
+    this.deleteTargetId = item._id
+    const rawTitle = item.title
+    let cleanTitle = ""
+    if (rawTitle && typeof rawTitle === "string") {
+      cleanTitle = rawTitle.trim()
+    }
+    if (cleanTitle.length > 0) {
+      this.deleteTargetTitle = cleanTitle
+    }
+    else {
+      this.deleteTargetTitle = ""
+    }
+    this.deleteError = null
+    this.deleteConfirmOpen = true
+  }
+
+  cancelDeletePlan(): void {
+    this.deleteConfirmOpen = false
+    this.deleteError = null
+    this.deleteTargetId = null
+    this.deleteTargetTitle = ""
+  }
+
+  async confirmDeletePlan(): Promise<void> {
+    const targetId = this.deleteTargetId
+    if (!targetId) {
       return
     }
-
+    this.deleteError = null
     try {
-      await this.deletePlanClientService.DeletePlanClient(item._id)
-      this.items = this.items.filter(i => i._id !== item._id)
+      await this.deletePlanClientService.DeletePlanClient(targetId)
+      this.items = this.items.filter(i => i._id !== targetId)
       if (this.items.length === 0) {
         this.showCreate = true
       }
+      this.cancelDeletePlan()
     }
-    catch {
-      alert("Suppression impossible")
+    catch (err: any) {
+      if (err && err.error && err.error.message) {
+        this.deleteError = err.error.message
+      }
+      else if (typeof err === "string") {
+        this.deleteError = err
+      }
+      else {
+        this.deleteError = "Suppression impossible"
+      }
     }
   }
+  getDeletePlanLabel(): string {
+    if (this.deleteTargetTitle && this.deleteTargetTitle.length > 0) {
+      return "Etes vous sur de vouloir supprimer le plan \"" + this.deleteTargetTitle + "\" ?"
+    }
+    else {
+      return "Etes vous sur de vouloir supprimer ce plan ?"
+    }
+  }
+
+
 
   hasAny(): boolean {
     if (this.items.length > 0) {

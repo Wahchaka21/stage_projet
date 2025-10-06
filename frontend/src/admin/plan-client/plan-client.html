@@ -1,6 +1,18 @@
 <div class="h-full min-h-0 flex flex-col">
+    <div class="mb-4 flex flex-wrap gap-3">
+        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'create', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'create' }"
+            (click)="switchToCreate()">
+            Creer un plan client
+        </button>
+        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'manage', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'manage' }"
+            (click)="switchToManage()">
+            Voir / supprimer les plans
+        </button>
+    </div>
 
-    <div class="rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-4 shadow-inner mb-6">
+    <div *ngIf="mode === 'create'" class="rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-1 shadow-inner mb-6">
         <h3 class="text-lg font-semibold text-[#315f92] mb-2">Créer un plan client</h3>
 
         <label class="block text-sm font-semibold text-[#315f92] mb-2">Titre du plan</label>
@@ -83,7 +95,7 @@
         </div>
     </div>
 
-    <div class="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2">
+    <div *ngIf="mode === 'manage'" class="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2">
         <p class="text-sm text-[#527bab]" *ngIf="listLoading">Chargement des plans…</p>
         <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="listError">{{
             listError }}</p>
@@ -122,7 +134,7 @@
 
                     <button type="button"
                         class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50 cursor-pointer"
-                        (click)="deletePlantClient(item)">
+                        (click)="openDeletePlan(item)">
                         Supprimer le plan
                     </button>
                 </div>
@@ -159,8 +171,25 @@
     (change)="handleNewPlanVideoPicked($event)" />
 <input #planVideoInput type="file" accept="video/*" class="hidden" multiple (change)="handleVideoPicked($event)" />
 
-<div class="mt-4">
+<div *ngIf="mode === 'manage'" class="mt-4">
     <p *ngIf="videoUploadLoading" class="text-sm text-[#527bab]">Upload en cours...</p>
     <p *ngIf="videoUploadSuccess" class="text-sm font-semibold text-green-600">{{ videoUploadSuccess }}</p>
     <p *ngIf="videoUploadError" class="text-sm font-semibold text-red-600">{{ videoUploadError }}</p>
+</div>
+
+<div *ngIf="deleteConfirmOpen" class="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 px-4"
+    (click)="cancelDeletePlan()">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 text-[#315f92] shadow-2xl" (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold">Confirmer la suppression</h3>
+        <p class="mt-3 text-sm text-[#527bab]">{{ getDeletePlanLabel() }}</p>
+        <p *ngIf="deleteError" class="mt-2 text-sm font-semibold text-red-600">{{ deleteError }}</p>
+        <div class="mt-6 flex flex-wrap justify-end gap-3">
+            <button type="button"
+                class="rounded-full border border-[#315f92] px-4 py-2 text-sm font-semibold text-[#315f92] transition hover:bg-[#315f92]/10"
+                (click)="cancelDeletePlan()">Annuler</button>
+            <button type="button"
+                class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                (click)="confirmDeletePlan()">Supprimer</button>
+        </div>
+    </div>
 </div>
