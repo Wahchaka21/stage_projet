@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { UnreadService } from './unread.service';
 import { Subscription } from 'rxjs';
+import { LoginService } from '../login/login.service';
 
 const API = "http://localhost:3000"
 
@@ -18,6 +19,8 @@ export class Home implements OnInit, OnDestroy {
   private http = inject(HttpClient)
   private route = inject(ActivatedRoute)
   private unreads = inject(UnreadService)
+  private loginService = inject(LoginService)
+  private router = inject(Router)
   nombreNonLus = 0
   private subNonLus: Subscription | null = null
 
@@ -111,5 +114,16 @@ export class Home implements OnInit, OnDestroy {
 
   isAdmin(): boolean {
     return !!(this.me && this.me.role === "admin")
+  }
+
+  logout() {
+    this.loginService.logout().subscribe({
+      next: () => {
+        this.router.navigateByUrl("/connexion")
+      },
+      error: () => {
+        this.router.navigateByUrl("/connexion")
+      }
+    })
   }
 }
