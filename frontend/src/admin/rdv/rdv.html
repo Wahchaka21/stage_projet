@@ -8,9 +8,10 @@
         </button>
     </div>
 
-    <p class="text-sm text-[#527bab]" *ngIf="listLoading">Chargement…</p>
-    <p class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" *ngIf="listError">{{ listError
-        }}</p>
+    <p class="text-sm text-[#527bab]" *ngIf="listLoading">Chargement...</p>
+    <p class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" *ngIf="listError">
+        {{ listError }}
+    </p>
     <p class="text-sm text-[#527bab]" *ngIf="!listLoading && !listError && items.length === 0">
         Aucun RDV pour cet utilisateur.
     </p>
@@ -20,7 +21,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <div class="text-sm font-semibold text-[#315f92]">
-                        {{ r.at | date:'fullDate' }} — {{ r.at | date:'shortTime' }}
+                        {{ r.at | date:'fullDate' }} &agrave; {{ r.at | date:'shortTime' }}
                     </div>
                     <div class="text-sm text-[#527bab]" *ngIf="r.description">
                         {{ r.description }}
@@ -49,7 +50,7 @@
             <label class="block text-sm font-medium text-[#315f92] mb-1">Description (optionnelle)</label>
             <textarea rows="4" [(ngModel)]="rdvDescription" name="rdvDescription"
                 class="w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none"
-                placeholder="Ex: appel de suivi, séance, etc."></textarea>
+                placeholder="Ex: appel de suivi, seance, etc."></textarea>
         </div>
 
         <div class="sm:col-span-2 flex items-center justify-end gap-3">

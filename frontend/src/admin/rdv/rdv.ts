@@ -1,14 +1,18 @@
-import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { CommonModule, registerLocaleData } from '@angular/common';
+import { Component, Input, LOCALE_ID, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AddRdvService } from './create-rdv.service';
 import { DeleteRdvService } from './delete-rdv.service';
 import { ListRdvService, RdvItem } from './list-rdv.service';
+import localeFr from '@angular/common/locales/fr';
+
+registerLocaleData(localeFr);
 
 @Component({
   selector: 'app-rdv',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  providers: [{ provide: LOCALE_ID, useValue: 'fr-FR' }],
   templateUrl: './rdv.html'
 })
 export class Rdv implements OnInit, OnChanges {

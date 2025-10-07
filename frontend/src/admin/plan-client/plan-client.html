@@ -1,11 +1,11 @@
 <div class="h-full min-h-0 flex flex-col">
     <div class="mb-4 flex flex-wrap gap-3">
-        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer"
             [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'create', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'create' }"
             (click)="switchToCreate()">
             Creer un plan client
         </button>
-        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer"
             [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'manage', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'manage' }"
             (click)="switchToManage()">
             Voir / supprimer les plans
@@ -86,7 +86,7 @@
 
         <div class="mt-3 flex items-center gap-3">
             <button type="button" (click)="handleCreatePlanClient()" [disabled]="planClientLoading"
-                class="rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:opacity-60">
+                class="rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:opacity-60 cursor-pointer">
                 {{ getCreateButtonLabel() }}
             </button>
 
