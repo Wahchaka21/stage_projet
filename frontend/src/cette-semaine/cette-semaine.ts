@@ -110,7 +110,9 @@ export class CetteSemaine implements OnInit {
   }
 
   formatDate(iso?: string): string {
-    if (!iso) return ""
+    if (!iso) {
+      return ""
+    }
     const d = new Date(iso)
     return d.toLocaleString("fr-FR", {
       weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"

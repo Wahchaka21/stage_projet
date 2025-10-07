@@ -167,7 +167,8 @@ export class PlanClient implements OnInit, OnChanges {
     if (item && item.createdAt) {
       try {
         result.createdAt = new Date(item.createdAt).toISOString()
-      } catch {
+      }
+      catch {
         result.createdAt = ""
       }
     }

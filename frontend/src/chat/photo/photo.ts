@@ -29,7 +29,9 @@ export class PhotoFeature {
   openPhotoPicker(input?: ElementRef<HTMLInputElement>): void {
     this.closeAttachmentMenu()
     const el = input?.nativeElement
-    if (!el) return
+    if (!el) {
+      return
+    }
     el.value = ""
     el.click()
   }
@@ -90,7 +92,9 @@ export class PhotoFeature {
     let file: File | null = null
     if (input.files && input.files[0]) {
       file = input.files[0]
-    } if (!file) {
+    }
+
+    if (!file) {
       return
     }
 

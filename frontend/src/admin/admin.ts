@@ -200,7 +200,9 @@ export class Admin implements OnInit, OnDestroy {
     this.showAttachmentMenu = !this.showAttachmentMenu
   }
   closeAttachmentMenu(): void {
-    if (this.showAttachmentMenu) this.showAttachmentMenu = false
+    if (this.showAttachmentMenu) {
+      this.showAttachmentMenu = false
+    }
   }
 
   selectUser(user: AdminUser): void {
@@ -332,9 +334,9 @@ export class Admin implements OnInit, OnDestroy {
       this.updateMessageAfterEdit(this.editMessageId, trimmed, res?.updatedAt)
       this.cancelEdit()
     }
-    catch (e: any) {
-      if (typeof e === "string") {
-        this.editError = e
+    catch (err: any) {
+      if (typeof err === "string") {
+        this.editError = err
       }
       else {
         this.editError = "Erreur lors de la modification du message"
@@ -450,7 +452,9 @@ export class Admin implements OnInit, OnDestroy {
 
     this.lastMarkedAt = 0
 
-    if (this.systemSub) this.systemSub.unsubscribe()
+    if (this.systemSub) {
+      this.systemSub.unsubscribe()
+    }
     this.systemSub = this.chatService.onSystem().subscribe((payload: any) => {
       let convId = ""
       if (payload && typeof payload.Conversation === "string" && payload.Conversation.trim()) {
@@ -463,7 +467,9 @@ export class Admin implements OnInit, OnDestroy {
         convId = payload.conversation
       }
 
-      if (!convId) return
+      if (!convId) {
+        return
+      }
       this.currentConvId = convId
       if (this.selectedUser?._id) {
         this.convIdByPeer[this.selectedUser._id] = convId
@@ -471,7 +477,9 @@ export class Admin implements OnInit, OnDestroy {
       this.markAsReadNow(convId)
     })
 
-    if (this.messageSubscription) this.messageSubscription.unsubscribe()
+    if (this.messageSubscription) {
+      this.messageSubscription.unsubscribe()
+    }
     this.messageSubscription = this.chatService.stream().subscribe((m) => {
       this.handleIncoming(m)
       this.markAsReadThrottled()
@@ -515,7 +523,9 @@ export class Admin implements OnInit, OnDestroy {
         this.scheduleScroll()
       },
       error: () => {
-        if (this.activePeerId !== peerId) return
+        if (this.activePeerId !== peerId) {
+          return
+        }
         this.messagesLoading = false
         this.messages = []
         this.messagesError = "Impossible de charger les messages"
@@ -679,7 +689,9 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   async copyMessage(messageId: string): Promise<void> {
-    if (!messageId) return
+    if (!messageId) {
+      return
+    }
 
     this.messagesError = null
 

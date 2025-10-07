@@ -127,7 +127,9 @@ export class VideoFeature {
     let file: File | null = null
     if (input.files && input.files[0]) {
       file = input.files[0]
-    } if (!file) {
+    }
+
+    if (!file) {
       return
     }
 
@@ -260,7 +262,9 @@ export class VideoFeature {
     }
     const cached = this.videoNameCache[message.videoId]
     if (cached && cached.trim().length > 0) {
-      if (message.videoName !== cached) this.updateMessagesVideoName(message.videoId, cached)
+      if (message.videoName !== cached) {
+        this.updateMessagesVideoName(message.videoId, cached)
+      }
       return
     }
     this.requestVideoNameFetch(message.videoId)

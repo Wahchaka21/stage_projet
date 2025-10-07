@@ -156,14 +156,20 @@ export class Rdv implements OnInit, OnChanges {
   }
 
   async delete(item: RdvItem): Promise<void> {
-    if (!item || !item._id) return
+    if (!item || !item._id) {
+      return
+    }
     const ok = confirm("Supprimer ce RDV ?")
-    if (!ok) return
+    if (!ok) {
+      return
+    }
 
     try {
       await this.delRdv.deleteRdv(item._id)
       this.items = this.items.filter(x => x._id !== item._id)
-      if (this.items.length === 0) this.showCreate = true
+      if (this.items.length === 0) {
+        this.showCreate = true
+      }
     }
     catch {
       alert("Suppression impossible")

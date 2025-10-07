@@ -105,8 +105,8 @@ export class Registration {
 
     // Règle "confirm = password"
     //ici ces deux const servent à récupéré le mdp et la confirmation du mdp
-    const passwordCtrl = this.form.get('password')
-    const confirmCtrl = this.form.get('confirm')
+    const passwordCtrl = this.form.get("password")
+    const confirmCtrl = this.form.get("confirm")
 
     if (confirmCtrl) {
       //on ajout un validateur au champ confirm
@@ -114,7 +114,7 @@ export class Registration {
         //on passe une fonction qui renvoie la valuer courante du mdp
         match(() => String(
           // les ?? '' c'est si valeur null/undefined, on compare à une chaîne vide (ça évite les err)
-          passwordCtrl?.value ?? ''
+          passwordCtrl?.value ?? ""
         ))
       )
     }
@@ -126,27 +126,27 @@ export class Registration {
   /** Texte d’erreur pour le champ email (sans opérateurs ternaires) */
   emailErrorText(): string | null {
     //on lit le controle email
-    const ctrl = this.f['email']
+    const ctrl = this.f["email"]
     //si le champ n'a pas encore été touché, on affiche rien
     if (!ctrl.touched) {
       return null
     }
     //sinon on regarde quelles erreurs
     if (ctrl.errors) {
-      if (ctrl.errors['required']) {
-        return 'Email requis'
+      if (ctrl.errors["required"]) {
+        return "Email requis"
       }
-      else if (ctrl.errors['email']) {
-        return 'Email invalide'
+      else if (ctrl.errors["email"]) {
+        return "Email invalide"
       }
     }
     return null
   }
 
   /** Indique si une règle password donnée est OK (true = verte, false = grise/rouge) */
-  isPasswordRuleOk(ruleKey: 'minLen' | 'lower' | 'upper' | 'digit' | 'special'): boolean {
+  isPasswordRuleOk(ruleKey: "minLen" | "lower" | "upper" | "digit" | "special"): boolean {
     //pareil ici on lit le mbp
-    const ctrl = this.f['password']
+    const ctrl = this.f["password"]
     const touched = ctrl?.touched
     if (!touched) {
       return false // avant touche, on ne met pas en vert
@@ -161,8 +161,8 @@ export class Registration {
 
   /** Indique si la règle "common" est déclenchée */
   hasCommonPasswordPattern(): boolean {
-    const ctrl = this.f['password']
-    return Boolean(ctrl?.touched && ctrl?.errors?.['common'])
+    const ctrl = this.f["password"]
+    return Boolean(ctrl?.touched && ctrl?.errors?.["common"])
   }
 
   /** Bouton envoyer désactivé ? */
@@ -202,18 +202,18 @@ export class Registration {
 
     this.auth.register(payload).subscribe({
       next: () => {
-        this.serverOk.set('Compte créé ! Vous pouvez vous connecter.')
+        this.serverOk.set("Compte créé ! Vous pouvez vous connecter.")
         this.form.reset()
 
         this.waiting.set(false)
 
         // petite redirection après succès
         setTimeout(() => {
-          this.router.navigateByUrl('/connexion')
+          this.router.navigateByUrl("/connexion")
         }, 1000)
       },
       error: (err) => {
-        let msg = 'Erreur lors de la création du compte'
+        let msg = "Erreur lors de la création du compte"
         if (err && err.error && err.error.error) {
           msg = err.error.error;
         }
