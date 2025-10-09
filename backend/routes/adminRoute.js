@@ -6,10 +6,11 @@ const rdvController = require("../controllers/rdvController")
 const {isValideObjectId} = require("../utils/validator")
 const planClientController = require("../controllers/planClientController")
 const {uploadVideo} = require("../middlewares/uploadVideo")
+const cetteSemaineController = require("../controllers/cetteSemaineController")
 
 const router = express.Router()
 
-router.param('userId', (req, res, next, val) => {
+router.param("userId", (req, res, next, val) => {
   if (!isValideObjectId(val)) {
     return res.status(400).json({ error: "ID d'utilisateur invalide" })
   }
@@ -33,5 +34,10 @@ router.get("/planClient/user/:userId", isAuth, isAdmin, planClientController.han
 
 router.post("/planClient/:planClientId/attachVideo", isAuth, isAdmin, uploadVideo.single("video"), adminController.handleUploadVideoForPlan)
 router.delete("/planClient/:planClientId/video/:videoId", isAuth, isAdmin, adminController.handleDeleteVideoFromPlan)
+
+router.post("/createCetteSemaine", isAuth, isAdmin, cetteSemaineController.handleCreateCetteSemaine)
+router.delete("/deleteCetteSemaine/:cetteSemaineId", isAuth, isAdmin, cetteSemaineController.handleDeleteCetteSemaine)
+router.get("/cetteSemaine/user/:userId", isAuth, isAdmin, cetteSemaineController.handleGetCetteSemaineForUser)
+router.patch("/updateCetteSemaine/:cetteSemaineId", isAuth, isAdmin, cetteSemaineController.handleUpdateCetteSemaine)
 
 module.exports = router
