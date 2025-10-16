@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http'
 import { Component, OnInit } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { planClientService, planClient } from './plan-client.service'
+import { planClientService, planClient, cetteSemaineInt } from './plan-client.service'
 import { firstValueFrom } from 'rxjs'
 
 const API = "http://localhost:3000"
@@ -20,6 +20,7 @@ export class CetteSemaine implements OnInit {
   error: string | null = null
 
   sessions: planClient[] = []
+  semaines: cetteSemaineInt[] = []
   expandedId: string | null = null
 
   nombreNonLus = 0
@@ -43,6 +44,7 @@ export class CetteSemaine implements OnInit {
 
   async ngOnInit() {
     await this.loadPlans()
+    await this.loadCetteSemaines()
     await this.fetchCoach()
   }
 
@@ -69,6 +71,21 @@ export class CetteSemaine implements OnInit {
     }
     catch (err: any) {
       this.error = err?.error?.message || "Impossible de récupérer vos séances"
+    }
+    finally {
+      this.loading = false
+    }
+  }
+
+  async loadCetteSemaines() {
+    this.loading = true
+    this.error = null
+    try {
+      const list = await this.planClientService.listMyCetteSemaine()
+      this.semaines = list
+    }
+    catch (err: any) {
+      this.error = err?.error?.message || "Impossible de récupérer la semaine"
     }
     finally {
       this.loading = false
