@@ -7,7 +7,7 @@ type UpdateCetteSemainePayload = {
     contenu?: string
 }
 
-Injectable({
+@Injectable({
     providedIn: 'root'
 })
 export class ModifiyCetteSemaineService {

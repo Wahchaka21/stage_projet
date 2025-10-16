@@ -44,10 +44,10 @@
         </div>
 
         <label class="block text-sm font-semibold text-[#315f92] mb-2">
-            Contenu (exercices, consignes, etc.)
+            Contenu
         </label>
 
-        <div #editor contenteditable="true" (input)="onEditorInput()" class="h-[30vh] overflow-y-auto
+        <div #editor contenteditable="true" (input)="onEditorInput()" class="h-[28vh] overflow-y-auto
              w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2
              text-sm text-[#315f92] focus-within:border-[#315f92] focus:outline-none
              whitespace-pre-wrap break-words">
@@ -106,9 +106,8 @@
         <article *ngFor="let item of items"
             class="rounded-2xl border border-[#e1e9f5] bg-white p-4 text-[#315f92] shadow-sm">
             <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <!-- Affichage du titre -->
                 <h4 class="text-base font-semibold">
-                    {{ item.title && item.title.trim() ? item.title : ('Plan #' + item._id) }}
+                    {{ getPlanItemTitle(item) }}
                 </h4>
 
                 <div class="flex items-center gap-2">
@@ -140,8 +139,8 @@
                 </div>
             </header>
 
-            <div class="prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"
-                [innerHTML]="sanitize(item.contenu)"></div>
+            <div #planContentHost
+                class="prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"></div>
 
             <div *ngIf="item.videos && item.videos.length > 0" class="mt-4 space-y-2">
                 <h5 class="text-sm font-semibold text-[#315f92]">Vidéos</h5>

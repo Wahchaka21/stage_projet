@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild, ViewChildren, QueryList, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AddCetteSemaineService } from './create-cetteSemaine.service';
 import { DeleteCetteSemaineService } from './delete-cetteSemaine.service';
 import { ListCetteSemaineService } from './list-cetteSermaine.service';
 import { ModifiyCetteSemaineService } from './modify-cetteSemaine.service';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 type CetteSemaineItem = {
   _id: string
@@ -24,13 +23,15 @@ type UpdateCetteSemainePayload = {
   selector: 'app-cette-semaine',
   imports: [CommonModule, FormsModule],
   templateUrl: './cette-semaine.html',
-  styleUrl: './cette-semaine.css'
+  styleUrls: ['./cette-semaine.css'],
+  standalone: true
 })
-export class CetteSemaine implements OnInit, OnChanges {
+export class CetteSemaine implements OnInit, OnChanges, AfterViewInit {
   @Input() selectedUserId: string | null = null
   @Input() myUserId: string | null = null
 
   @ViewChild("editor", { static: false }) editorRef: ElementRef<HTMLDivElement> | undefined = undefined
+  @ViewChildren("cetteSemaineContentHost") contentRefs: QueryList<ElementRef<HTMLDivElement>> | undefined = undefined
   cetteSemaineContenu = ""
   cetteSemaineId: string | null = null
 
@@ -53,17 +54,26 @@ export class CetteSemaine implements OnInit, OnChanges {
 
   cetteSemaineTitre = ""
   private targetCetteSemaineForUpload: string | null = null
+  private listRenderScheduled = false
 
   constructor(
     private addCetteSemaineService: AddCetteSemaineService,
     private deleteCetteSemaineService: DeleteCetteSemaineService,
     private listCetteSemaineService: ListCetteSemaineService,
-    private modifyCetteSemaineService: ModifiyCetteSemaineService,
-    private sanitizer: DomSanitizer
+    private modifyCetteSemaineService: ModifiyCetteSemaineService
   ) { }
 
   ngOnInit(): void {
     this.reload()
+  }
+
+  ngAfterViewInit(): void {
+    if (this.contentRefs) {
+      this.contentRefs.changes.subscribe(() => {
+        this.renderListContent()
+      })
+    }
+    this.renderListContent()
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -79,6 +89,7 @@ export class CetteSemaine implements OnInit, OnChanges {
     this.cancelDeleteCetteSemaine()
     this.items = []
     this.closeAttachMenus()
+    this.scheduleListRender()
   }
 
   switchToManage(): void {
@@ -89,6 +100,7 @@ export class CetteSemaine implements OnInit, OnChanges {
     this.showCreate = false
     this.items = []
     this.closeAttachMenus()
+    this.scheduleListRender()
     this.loadList()
   }
 
@@ -103,11 +115,12 @@ export class CetteSemaine implements OnInit, OnChanges {
     else {
       this.items = []
       this.showCreate = true
+      this.scheduleListRender()
     }
   }
 
   private normalize(item: any): CetteSemaineItem {
-    const result: CetteSemaineItem = { _id: "", userId: "", contenu: "", }
+    const result: CetteSemaineItem = { _id: "", userId: "", contenu: "" }
 
     if (item && item._id) {
       result._id = String(item._id)
@@ -129,13 +142,6 @@ export class CetteSemaine implements OnInit, OnChanges {
       result.userId = ""
     }
 
-    if (item && item.contenu) {
-      result.contenu = String(item.contenu)
-    }
-    else {
-      result.contenu = ""
-    }
-
     if (item && item.title) {
       result.title = String(item.title)
     }
@@ -154,6 +160,13 @@ export class CetteSemaine implements OnInit, OnChanges {
     else {
       result.createdAt = ""
     }
+
+    let rawContenu = ""
+    if (item && item.contenu) {
+      rawContenu = String(item.contenu)
+    }
+    result.contenu = this.sanitizeHtml(rawContenu)
+
     return result
   }
 
@@ -163,6 +176,7 @@ export class CetteSemaine implements OnInit, OnChanges {
       this.items = []
       this.listLoading = false
       this.listError = null
+      this.scheduleListRender()
       return
     }
 
@@ -185,11 +199,13 @@ export class CetteSemaine implements OnInit, OnChanges {
       this.items = raw.map(x => this.normalize(x))
       this.showCreate = this.items.length === 0
       this.listLoading = false
+      this.scheduleListRender()
     }
     catch {
       this.items = []
       this.listLoading = false
       this.listError = "Impossible de charger les \"cette semaine\""
+      this.scheduleListRender()
     }
   }
 
@@ -238,31 +254,19 @@ export class CetteSemaine implements OnInit, OnChanges {
 
   private getEditorHtml(): string {
     if (this.editorRef && this.editorRef.nativeElement) {
-      return this.editorRef.nativeElement.innerHTML
+      return this.serializeNodes(Array.from(this.editorRef.nativeElement.childNodes))
     }
     return ""
   }
 
   private isEditorEmpty(html: string): boolean {
-    const div = document.createElement("div")
-    div.innerHTML = html || ""
-    const txt = (div.textContent || "").trim()
-    if (txt.length === 0) {
-      return true
-    }
-    else {
-      return false
-    }
-  }
-
-  sanitize(html: string): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(html || "")
+    return this.isHtmlEmpty(html)
   }
 
   private resetEditor(): void {
     this.cetteSemaineContenu = ""
     if (this.editorRef && this.editorRef.nativeElement) {
-      this.editorRef.nativeElement.innerHTML = ""
+      this.renderHtmlInto(this.editorRef.nativeElement, "")
     }
   }
 
@@ -378,6 +382,7 @@ export class CetteSemaine implements OnInit, OnChanges {
         this.showCreate = true
       }
       this.cancelDeleteCetteSemaine()
+      this.scheduleListRender()
     }
     catch (err: any) {
       if (err && err.error && err.error.message) {
@@ -399,6 +404,225 @@ export class CetteSemaine implements OnInit, OnChanges {
     else {
       return "Etes vous sur de vouloir supprimer ce plan ?"
     }
+  }
+
+  getCetteSemaineFormTitle(): string {
+    const identifier = this.cetteSemaineId
+    if (identifier && identifier.trim().length > 0) {
+      return "Modifier \"cette semaine\""
+    }
+    else {
+      return "Créer \"cette semaine\""
+    }
+  }
+
+  getCetteSemaineItemTitle(item: CetteSemaineItem): string {
+    if (item && item.title) {
+      const trimmed = item.title.trim()
+      if (trimmed.length > 0) {
+        return trimmed
+      }
+    }
+    if (item && item._id) {
+      return "#" + item._id
+    }
+    return "\"cette semaine\""
+  }
+
+  private scheduleListRender(): void {
+    if (this.listRenderScheduled) {
+      return
+    }
+    this.listRenderScheduled = true
+    setTimeout(() => {
+      this.listRenderScheduled = false
+      this.renderListContent()
+    })
+  }
+
+  private renderListContent(): void {
+    if (!this.contentRefs) {
+      return
+    }
+    const hosts = this.contentRefs.toArray()
+    for (let i = 0; i < hosts.length; i += 1) {
+      const ref = hosts[i]
+      const item = this.items[i]
+      if (ref && ref.nativeElement) {
+        let html = ""
+        if (item) {
+          html = item.contenu
+        }
+        this.renderHtmlInto(ref.nativeElement, html)
+      }
+    }
+  }
+
+  private renderHtmlInto(element: HTMLElement, html: string): void {
+    if (!element) {
+      return
+    }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild)
+    }
+    if (!html || html.trim().length === 0) {
+      return
+    }
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, "text/html")
+    const fragment = document.createDocumentFragment()
+    for (const node of Array.from(doc.body.childNodes)) {
+      fragment.appendChild(node.cloneNode(true))
+    }
+    element.appendChild(fragment)
+  }
+
+  private sanitizeHtml(html: string): string {
+    if (!html) {
+      return ""
+    }
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, "text/html")
+    return this.serializeNodes(Array.from(doc.body.childNodes))
+  }
+
+  private serializeNodes(nodes: ChildNode[]): string {
+    const parts: string[] = []
+    for (const node of nodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        parts.push(this.escapeHtml(node.textContent || ""))
+        continue
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        continue
+      }
+      const element = node as HTMLElement
+      const tagName = (element.tagName || "").toLowerCase()
+      if (tagName === "script" || tagName === "style") {
+        continue
+      }
+      if (tagName === "span") {
+        parts.push(this.serializeNodes(Array.from(element.childNodes)))
+        continue
+      }
+      if (tagName === "div") {
+        const innerDiv = this.serializeNodes(Array.from(element.childNodes))
+        if (innerDiv.trim().length > 0) {
+          parts.push("<p>" + innerDiv + "</p>")
+        }
+        continue
+      }
+      const mapped = this.mapTag(tagName)
+      if (!mapped) {
+        parts.push(this.serializeNodes(Array.from(element.childNodes)))
+        continue
+      }
+      if (mapped === "br") {
+        parts.push("<br>")
+        continue
+      }
+      const inner = this.serializeNodes(Array.from(element.childNodes))
+      if (inner.trim().length === 0 && mapped !== "br") {
+        continue
+      }
+      if (mapped === "a") {
+        const href = this.sanitizeHref(element.getAttribute("href") || "")
+        if (href) {
+          parts.push("<a href=\"" + this.escapeAttribute(href) + "\" rel=\"noopener noreferrer\">" + inner + "</a>")
+        }
+        else {
+          parts.push(inner)
+        }
+        continue
+      }
+      parts.push("<" + mapped + ">" + inner + "</" + mapped + ">")
+    }
+    return parts.join("")
+  }
+
+  private mapTag(tagName: string): string | null {
+    if (tagName === "b" || tagName === "strong") {
+      return "strong"
+    }
+    if (tagName === "i" || tagName === "em") {
+      return "em"
+    }
+    if (tagName === "u") {
+      return "u"
+    }
+    if (tagName === "p") {
+      return "p"
+    }
+    if (tagName === "h1") {
+      return "h1"
+    }
+    if (tagName === "h2") {
+      return "h2"
+    }
+    if (tagName === "blockquote") {
+      return "blockquote"
+    }
+    if (tagName === "ul") {
+      return "ul"
+    }
+    if (tagName === "ol") {
+      return "ol"
+    }
+    if (tagName === "li") {
+      return "li"
+    }
+    if (tagName === "a") {
+      return "a"
+    }
+    if (tagName === "br") {
+      return "br"
+    }
+    return null
+  }
+
+  private sanitizeHref(href: string): string | null {
+    const trimmed = (href || "").trim()
+    if (trimmed.length === 0) {
+      return null
+    }
+    const lower = trimmed.toLowerCase()
+    if (lower.startsWith("javascript:") || lower.startsWith("data:")) {
+      return null
+    }
+    if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:") || lower.startsWith("tel:")) {
+      return trimmed
+    }
+    if (lower.startsWith("/")) {
+      return trimmed
+    }
+    return null
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+  }
+
+  private escapeAttribute(value: string): string {
+    return this.escapeHtml(value)
+  }
+
+  private isHtmlEmpty(html: string): boolean {
+    if (!html) {
+      return true
+    }
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, "text/html")
+    const text = (doc.body.textContent || "").trim()
+    if (text.length > 0) {
+      return false
+    }
+    const hasBreak = doc.body.querySelector("br")
+    return !hasBreak
   }
 
   hasAny(): boolean {
@@ -471,6 +695,7 @@ export class CetteSemaine implements OnInit, OnChanges {
             return x
           }
         })
+        this.scheduleListRender()
       }
       this.cetteSemaineSucces = "Modifications enregistrées."
     }
@@ -487,5 +712,31 @@ export class CetteSemaine implements OnInit, OnChanges {
       this.cetteSemaineError = errorMessage
       console.error("\"updateCetteSemaine\" erreur :", err)
     }
+  }
+
+  startEdit(item: CetteSemaineItem): void {
+    this.mode = "create"
+    this.cetteSemaineSucces = null
+    this.cetteSemaineError = null
+
+    this.cetteSemaineId = item._id || null
+    this.cetteSemaineTitre = item.title || ""
+
+    let html = ""
+    if (item && item.contenu) {
+      html = item.contenu
+    }
+    if (this.editorRef && this.editorRef.nativeElement) {
+      this.renderHtmlInto(this.editorRef.nativeElement, html)
+    }
+    this.cetteSemaineContenu = html
+  }
+
+  cancelEdit(): void {
+    this.cetteSemaineId = null
+    this.cetteSemaineTitre = ""
+    this.resetEditor()
+    this.cetteSemaineSucces = null
+    this.cetteSemaineError = null
   }
 }
