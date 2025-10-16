@@ -273,25 +273,6 @@ export class PlanClient implements OnInit, OnChanges, AfterViewInit {
     this.focusEditor()
   }
 
-  formatBlock(tag: "p" | "h1" | "h2" | "blockquote"): void {
-    document.execCommand('formatBlock', false, tag)
-    this.focusEditor()
-  }
-
-  insertLink(): void {
-    const url = prompt("URL du lien (https://...)")
-    if (url) {
-      document.execCommand("createLink", false, url)
-      this.focusEditor()
-    }
-  }
-
-  clearFormatting(): void {
-    document.execCommand("removeFormat", false)
-    document.execCommand("unlink", false)
-    this.focusEditor()
-  }
-
   onEditorInput(): void {
     this.planClientContenu = this.getEditorHtml()
   }
