@@ -116,6 +116,12 @@
               (click)="view = 'cetteSemaine'">
               Cette semaine
             </button>
+
+            <button type="button" class="h-10 px-5 text-sm font-semibold transition cursor-pointer"
+              [ngClass]="{ 'bg-[#315f92] text-white': view === 'planAlimentaire', 'text-[#315f92]': view !== 'planAlimentaire' }"
+              (click)="view = 'planAlimentaire'">
+              Plan Alimentaire
+            </button>
           </div>
         </div>
 
@@ -377,6 +383,11 @@
 
           <ng-container *ngSwitchCase="'cetteSemaine'">
             <app-cette-semaine [selectedUserId]="selectedUser?._id || null" [myUserId]="myUserId"></app-cette-semaine>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'planAlimentaire'">
+            <app-plan-alimentaire [selectedUserId]="selectedUser?._id || null"
+              [myUserId]="myUserId"></app-plan-alimentaire>
           </ng-container>
 
         </div>

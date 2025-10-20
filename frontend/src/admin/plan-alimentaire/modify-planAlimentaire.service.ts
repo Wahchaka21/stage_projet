@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
 
-type UpdateCetteSemainePayload = {
+type UpdatePlanAlimentairePayload = {
     title?: string
     contenu?: string
 }
@@ -10,12 +10,12 @@ type UpdateCetteSemainePayload = {
 @Injectable({
     providedIn: 'root'
 })
-export class ModifiyCetteSemaineService {
-    private apiUrl = "http://localhost:3000/admin/updateCetteSemaine"
+export class ModifiyPlanAlimentaireService {
+    private apiUrl = "http://localhost:3000/admin/updatePlanAlimentaire"
 
     constructor(private http: HttpClient) { }
 
-    async updateCetteSemaine(id: string, patch: UpdateCetteSemainePayload): Promise<any> {
+    async updatePlanAlimentaire(id: string, patch: UpdatePlanAlimentairePayload): Promise<any> {
         try {
             const url = `${this.apiUrl}/${id}`
             const response = await firstValueFrom(
@@ -24,7 +24,7 @@ export class ModifiyCetteSemaineService {
             return response
         }
         catch (err: any) {
-            throw err?.error.error?.message || err?.error?.message || "Erreur lors de la modification de \"cette semaine\""
+            throw err?.error.error?.message || err?.error?.message || "Erreur lors de la modification du \"plan alimentaire\""
         }
     }
 }

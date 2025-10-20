@@ -44,6 +44,11 @@ export const routes: Routes = [
             import("../cette-semaine/cette-semaine").then((m) => m.CetteSemaine)
     },
     {
+        path: "plan-alimentaire",
+        loadComponent: () =>
+            import("../plan-alimentaire/plan-alimentaire").then((m) => m.PlanAlimentaire)
+    },
+    {
         path: "",
         redirectTo: "/connexion",
         pathMatch: "full"

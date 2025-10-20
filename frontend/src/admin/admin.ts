@@ -18,6 +18,7 @@ import { Rdv } from './rdv/rdv';
 import { UnreadService } from '../home/unread.service';
 import { PlanClient } from './plan-client/plan-client';
 import { CetteSemaine } from './cette-semaine/cette-semaine';
+import { PlanAlimentaire } from './plan-alimentaire/plan-alimentaire';
 
 type AdminUser = {
   _id: string
@@ -43,7 +44,7 @@ type UiMessage = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, Rdv, PlanClient, CetteSemaine],
+  imports: [CommonModule, FormsModule, RouterLink, Rdv, PlanClient, CetteSemaine, PlanAlimentaire],
   templateUrl: './admin.html'
 })
 export class Admin implements OnInit, OnDestroy {
@@ -77,7 +78,7 @@ export class Admin implements OnInit, OnDestroy {
   editError: string | null = null
   me: any | null = null
   myUserId: string | null = null
-  view: "messages" | "rdv" | "plans" | "cetteSemaine" = "messages"
+  view: "messages" | "rdv" | "plans" | "cetteSemaine" | "planAlimentaire" = "messages"
 
   private activePeerId: string | null = null
   private messageSubscription: Subscription | null = null
