@@ -21,6 +21,7 @@ const { initSockets } = require("./sockets")
 const rdvRoutes = require("./routes/rdvRoute")
 const planClientRoutes = require("./routes/planClientRoute")
 const cetteSemaineRoute = require("./routes/cetteSemaineRoutes")
+const planAlimentaireRoute = require("./routes/planAlimentaireRoute")
 
 const app = express()
 
@@ -70,6 +71,7 @@ app.use("/chat", chatRoutes)
 app.use("/rdv", rdvRoutes)
 app.use("/planClient", planClientRoutes)
 app.use("/cetteSemaine", cetteSemaineRoute)
+app.use("/planAlimentaire", planAlimentaireRoute)
 
 const PORT = config.port || 3000
 const server = app.listen(PORT, () => {

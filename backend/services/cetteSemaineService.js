@@ -1,11 +1,10 @@
-
-const cetteSemaineSchema = require("../schemas/cetteSemaineSchema")
+const rubriqueSchema = require("../schemas/rubriqueSchema")
 const { isValideObjectId } = require("../utils/validator")
 const persoError = require("../utils/error")
 
 async function createCetteSemaine(cetteSemaineData) {
     try {
-        return await cetteSemaineSchema.create(cetteSemaineData)
+        return await rubriqueSchema.create(cetteSemaineData)
     }
     catch(err) {
         if(err && (err.name === "ValidationError" || err.name === "CastError")) {
@@ -28,13 +27,13 @@ async function deleteCetteSemaine(cetteSemaineId) {
             return null
         }
 
-        const found = await cetteSemaineSchema.findById(cetteSemaineId)
+        const found = await rubriqueSchema.findById(cetteSemaineId)
         if(!found) {
             console.warn("cetteSemaineService.deleteCetteSemaine introuvalble pour", cetteSemaineId)
             return null
         }
 
-        const deleted = await cetteSemaineSchema.findByIdAndDelete(cetteSemaineId)
+        const deleted = await rubriqueSchema.findByIdAndDelete(cetteSemaineId)
         return deleted
     }
     catch(err) {
@@ -44,7 +43,6 @@ async function deleteCetteSemaine(cetteSemaineId) {
         throw persoError("DB_ERROR", "Erreur suppression de \"cette semaine\"", { original: err && err.message})
     }
 }
-
 
 function makeDateFilter(opts) {
     if(!opts) {
@@ -87,7 +85,7 @@ async function listCetteSemaineForClient(clientId, opts) {
             filter.createdAt = createdAt
         }
 
-        return await cetteSemaineSchema
+        return await rubriqueSchema
             .find(filter)
             .sort({ createdAt: 1 })
             .lean()
@@ -113,7 +111,7 @@ async function listCetteSemaineForUser(userId, opts) {
             filter.createdAt = createdAt
         }
 
-        return await cetteSemaineSchema
+        return await rubriqueSchema
             .find(filter)
             .sort({ createdAt: 1 })
             .lean()
@@ -147,7 +145,7 @@ async function updateCetteSemaine(cetteSemaineId, coachId, patch) {
             throw persoError("NOT_VALID", "Aucune modification fournie")
         }
 
-        const updated = await cetteSemaineSchema.findOneAndUpdate(
+        const updated = await rubriqueSchema.findOneAndUpdate(
             { _id: cetteSemaineId, userId: coachId },
             { $set: data },
             { new: true, runValidators: true }

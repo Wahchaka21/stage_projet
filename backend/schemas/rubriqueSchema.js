@@ -1,6 +1,6 @@
 const mongoose = require("mongoose")
 
-const cetteSemaineSchema = new mongoose.Schema({
+const rubriqueSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -27,7 +27,7 @@ const cetteSemaineSchema = new mongoose.Schema({
     versionKey: false
 })
 
-cetteSemaineSchema.index({ userId: 1, createdAt: -1 })
-cetteSemaineSchema.index({ sharedWithClientId: 1, createdAt: -1 })
+rubriqueSchema.index({ userId: 1, createdAt: -1 })
+rubriqueSchema.index({ sharedWithClientId: 1, createdAt: -1 })
 
-module.exports = mongoose.model("CetteSemaine", cetteSemaineSchema)
+module.exports = mongoose.model("Rubrique", rubriqueSchema)

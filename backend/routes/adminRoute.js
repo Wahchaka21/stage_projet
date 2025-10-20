@@ -7,6 +7,7 @@ const {isValideObjectId} = require("../utils/validator")
 const planClientController = require("../controllers/planClientController")
 const {uploadVideo} = require("../middlewares/uploadVideo")
 const cetteSemaineController = require("../controllers/cetteSemaineController")
+const planAlimentaireController = require("../controllers/planAlimenaireController")
 
 const router = express.Router()
 
@@ -39,5 +40,10 @@ router.post("/createCetteSemaine", isAuth, isAdmin, cetteSemaineController.handl
 router.delete("/deleteCetteSemaine/:cetteSemaineId", isAuth, isAdmin, cetteSemaineController.handleDeleteCetteSemaine)
 router.get("/cetteSemaine/user/:userId", isAuth, isAdmin, cetteSemaineController.handleGetCetteSemaineForUser)
 router.patch("/updateCetteSemaine/:cetteSemaineId", isAuth, isAdmin, cetteSemaineController.handleUpdateCetteSemaine)
+
+router.post("/createPlanAlimentaire", isAuth, isAdmin, planAlimentaireController.handleCreatePlanAlimentaire)
+router.delete("/deletePlanAlimentaire/:planAlimentaireId", isAuth, isAdmin, planAlimentaireController.handleDeletePlanAlimenaire)
+router.get("/planAlimentaire/user/:userId", isAuth, isAdmin, planAlimentaireController.handleGetPlanAlimentaireForUser)
+router.patch("/updatePlanAlimentaire/:planAlimentaireId", isAuth, isAdmin, planAlimentaireController.handleUpdatePlanAlimentaire)
 
 module.exports = router
