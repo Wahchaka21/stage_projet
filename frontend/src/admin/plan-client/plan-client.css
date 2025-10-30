@@ -1,0 +1,257 @@
+.plan-client-root {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.mode-switch {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mode-switch button {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid #315f92;
+    border-radius: 9999px;
+    background: #fff;
+    color: #315f92;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mode-switch button.active {
+    background: #315f92;
+    color: #fff;
+}
+
+.create-panel,
+.manage-panel {
+    border: 1px solid #dbe3f1;
+    border-radius: 1rem;
+    background: #f6f8fc;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+    border: 1px solid #c6d4eb;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    border-color: #315f92;
+}
+
+.messages .msg {
+    margin: 0.25rem 0;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.msg.success {
+    background: #e6f8ef;
+    color: #2f8f57;
+}
+
+.msg.error {
+    background: #fdecea;
+    color: #d93025;
+}
+
+.msg.info {
+    background: #eef3ff;
+    color: #315f92;
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.exercise-actions button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid #315f92;
+    border-radius: 9999px;
+    background: #fff;
+    color: #315f92;
+    cursor: pointer;
+}
+
+.exercise-card {
+    background: #fff;
+    border: 1px solid #dbe3f1;
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.exercise-card header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.exercise-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.exercise-card-actions button {
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1px solid #c6d4eb;
+    background: #fff;
+    cursor: pointer;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.video-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.submit-line {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.submit-line button {
+    padding: 0.55rem 1.5rem;
+    border-radius: 9999px;
+    border: none;
+    background: #315f92;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.empty-hint {
+    font-size: 0.9rem;
+    color: #527bab;
+}
+
+.plan-card {
+    background: #fff;
+    border: 1px solid #dbe3f1;
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.plan-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.plan-card-actions button {
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.75rem;
+    border: 1px solid #c6d4eb;
+    background: #fff;
+    cursor: pointer;
+}
+
+.videos-block ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.videos-block li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.videos-block button {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid #d93025;
+    border-radius: 0.6rem;
+    background: #fff;
+    color: #d93025;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 50;
+}
+
+.modal {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.modal-actions button {
+    padding: 0.45rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #c6d4eb;
+    background: #fff;
+    cursor: pointer;
+}
+
+.modal-actions button:last-child {
+    border-color: #d93025;
+    color: #d93025;
+}

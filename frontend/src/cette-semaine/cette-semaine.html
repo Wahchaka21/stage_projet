@@ -51,8 +51,7 @@
             <h2 class="text-base font-semibold text-[#315f92] mb-3">Vos exercices</h2>
 
             <p class="text-sm text-[#527bab]" *ngIf="loading">Chargement…</p>
-            <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="error">{{ error
-                }}</p>
+            <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="error">{{ error }}</p>
 
             <p class="text-sm text-[#527bab]" *ngIf="!loading && !error && sessions.length === 0">
                 Aucun exercice disponible pour le moment.
@@ -65,7 +64,7 @@
                     (click)="toggle(s._id)">
                     <div class="min-w-0">
                         <div class="font-semibold truncate">
-                            {{ s.title && s.title.trim() ? s.title : ('Séance ' + (i + 1)) }}
+                            {{ planTitle(s, i) }}
                         </div>
                         <div class="text-xs text-[#527bab]">{{ formatDate(s.createdAt) }}</div>
                     </div>
@@ -77,22 +76,49 @@
                     </svg>
                 </button>
 
-                <div *ngIf="expandedId === s._id" class="px-4 pb-4">
-                    <div class="content-html prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"
+                <div *ngIf="expandedId === s._id" class="px-4 pb-4 space-y-4">
+                    <div *ngIf="s.contenu" class="content-html prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"
                         [innerHTML]="sanitize(s.contenu)">
                     </div>
+                    <ng-container *ngIf="s.exercises && s.exercises.length > 0; else noExercises">
+                        <article *ngFor="let ex of s.exercises; let idx = index"
+                            class="rounded-xl border border-[#e1e9f5] bg-[#f8faff] p-3 space-y-2 text-[#315f92]">
+                            <h4 class="text-sm font-semibold">{{ exerciseTitle(ex, idx) }}</h4>
+                            <ul class="text-xs text-[#527bab] space-y-1 leading-relaxed">
+                                <li *ngIf="formatSetsReps(ex)">{{ formatSetsReps(ex) }}</li>
+                                <li>Temps travail : {{ formatSeconds(ex.workSec) }}</li>
+                                <li>Repos : {{ formatSeconds(ex.restSec) }}</li>
+                                <li>{{ formatLoad(ex.loadKg) }}</li>
+                                <li *ngIf="ex.hrZone">Zone cardiaque : {{ ex.hrZone }}</li>
+                                <li *ngIf="ex.rpe && ex.rpe > 0">RPE : {{ ex.rpe }}</li>
+                            </ul>
 
-                    <div *ngIf="s.videos && s.videos.length > 0" class="mt-4 space-y-2">
-                        <h5 class="text-sm font-semibold text-[#315f92]">Vidéos</h5>
+                            <a *ngIf="hasVideo(ex)" [href]="ex.video.url" target="_blank" rel="noopener"
+                                class="inline-flex items-center gap-2 text-xs font-semibold text-[#315f92] underline">
+                                {{ videoLabel(ex) }}
+                            </a>
+
+                            <div *ngIf="ex.notes" class="rounded-lg bg-[#315f92]/10 px-3 py-2 text-xs">
+                                <strong class="block text-[#315f92] mb-1">Consignes :</strong>
+                                <p class="text-[#315f92] whitespace-pre-wrap">{{ ex.notes }}</p>
+                            </div>
+                        </article>
+                    </ng-container>
+
+                    <ng-template #noExercises>
+                        <p class="text-xs text-[#527bab]">Aucun exercice enregistré pour cette seance.</p>
+                    </ng-template>
+
+                    <div *ngIf="s.videos && s.videos.length > 0" class="space-y-2">
+                        <h5 class="text-sm font-semibold text-[#315f92]">Videos</h5>
                         <div *ngFor="let v of s.videos"
                             class="flex items-center justify-between gap-3 rounded-xl border border-[#e1e9f5] bg-[#f7f9fe] px-3 py-2">
                             <div class="min-w-0">
                                 <a [href]="v.url" target="_blank" rel="noopener"
                                     class="block truncate text-sm underline decoration-[#315f92] underline-offset-4">
-                                    {{ v.name || 'Vidéo' }}
+                                    {{ v.name || 'Video' }}
                                 </a>
-                                <small *ngIf="v.duration && v.duration > 0" class="text-[#527bab]">{{ v.duration
-                                    }}s</small>
+                                <small *ngIf="v.duration && v.duration > 0" class="text-[#527bab]">{{ v.duration }}s</small>
                             </div>
                         </div>
                     </div>

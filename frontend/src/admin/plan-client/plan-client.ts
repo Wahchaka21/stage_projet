@@ -1,780 +1,749 @@
-import { CommonModule } from '@angular/common';
-import { Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild, ViewChildren, QueryList, AfterViewInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ListPlanClientService } from './list-planClient.service';
-import { AddPlanClientService } from './create-planClient.service';
-import { DeletePlanClientService } from './delete-planClient.service';
-import { UploadVideoToPlanService } from './upload-video-to-plan.service';
-import { AttachVideoToPlanService } from './attach-video-to-plan.service';
+import { CommonModule } from "@angular/common"
+import { Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from "@angular/core"
+import { FormsModule } from "@angular/forms"
+import { AddPlanClientService, CreateExercisePayload } from "./create-planClient.service"
+import { DeletePlanClientService } from "./delete-planClient.service"
+import { ListPlanClientService, PlanClientExercise, PlanClientItem, PlanClientVideo } from "./list-planClient.service"
+import { UploadVideoToPlanService } from "./upload-video-to-plan.service"
+import { AttachVideoToPlanService } from "./attach-video-to-plan.service"
+import { QuickAddExerciseService } from "./quick-add-exercise.service"
+import { UpdateExerciseService } from "./update-exercise.service"
+import { RemoveExerciseService } from "./remove-exercise.service"
+import { ReorderExercisesService } from "./reorder-exercises.service"
 
-type PlanVideo = {
-  videoId: string
-  url: string
-  name: string
-  duration: number
+type ExerciseForm = {
+    _id: string
+    name: string
+    type: string
+    sets: number
+    reps: number
+    workSec: number
+    restSec: number
+    loadKg: number
+    rpe: number
+    hrZone: string
+    notes: string
+    videoUrl: string
+    videoName: string
+    videoDuration: number
+    saving: boolean
+    success: string | null
+    error: string | null
 }
 
-type PlanClientItem = {
-  _id: string
-  userId: string
-  contenu: string
-  videos: PlanVideo[]
-  title?: string
-  createdAt?: string
+type ManagedPlan = PlanClientItem & {
+    exercisesForm: ExerciseForm[]
+    expanded: boolean
+    message: string | null
+    error: string | null
+    busy: boolean
 }
+
+const EXERCISE_TYPES = ["cardio", "muscu", "mobilite", "autre"]
 
 @Component({
-  selector: 'app-plan-client',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './plan-client.html',
-  styleUrls: ['./plan-client.css']
+    selector: "app-plan-client",
+    standalone: true,
+    imports: [CommonModule, FormsModule],
+    templateUrl: "./plan-client.html",
+    styleUrls: ["./plan-client.css"]
 })
-export class PlanClient implements OnInit, OnChanges, AfterViewInit {
+export class PlanClient implements OnInit, OnChanges {
 
-  @Input() selectedUserId: string | null = null
-  @Input() myUserId: string | null = null
+    @Input() selectedUserId: string | null = null
+    @Input() myUserId: string | null = null
 
-  @ViewChild("editor", { static: false }) editorRef: ElementRef<HTMLDivElement> | undefined = undefined
-  @ViewChildren("planContentHost") planContentRefs: QueryList<ElementRef<HTMLDivElement>> | undefined = undefined
-  planClientContenu = ""
+    @ViewChild("planVideoInput") planVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
 
-  planClientLoading = false
-  planClientError: string | null = null
-  planClientSucces: string | null = null
-  mode: "create" | "manage" = "create"
-  deleteConfirmOpen = false
-  deleteTargetId: string | null = null
-  deleteTargetTitle = ""
-  deleteError: string | null = null
+    mode: "create" | "manage" = "create"
 
-  listLoading = false
-  listError: string | null = null
-  items: PlanClientItem[] = []
-  showCreate = true
+    planClientTitre = ""
+    newExercises: ExerciseForm[] = []
+    planClientLoading = false
+    planClientError: string | null = null
+    planClientSuccess: string | null = null
+    exerciseTypes = EXERCISE_TYPES
 
-  showCreateAttachMenu = false
-  showAttachMenuFor: string | null = null
+    listLoading = false
+    listError: string | null = null
+    plans: ManagedPlan[] = []
 
-  planClientTitre = ""
+    deleteConfirmOpen = false
+    deleteTargetId: string | null = null
+    deleteTargetTitle = ""
+    deleteError: string | null = null
 
-  queuedVideos: File[] = []
-  @ViewChild("newPlanVideoInput") newPlanVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
+    videoUploadLoading = false
+    videoUploadError: string | null = null
+    videoUploadSuccess: string | null = null
+    private targetPlanForUpload: string | null = null
 
-  @ViewChild("planVideoInput") planVideoInput: ElementRef<HTMLInputElement> | undefined = undefined
-  private targetPlanForUpload: string | null = null
+    constructor(
+        private addPlanClientService: AddPlanClientService,
+        private deletePlanClientService: DeletePlanClientService,
+        private listPlanClientService: ListPlanClientService,
+        private uploadVideoService: UploadVideoToPlanService,
+        private attachVideoService: AttachVideoToPlanService,
+        private quickAddExerciseService: QuickAddExerciseService,
+        private updateExerciseService: UpdateExerciseService,
+        private removeExerciseService: RemoveExerciseService,
+        private reorderExercisesService: ReorderExercisesService
+    ) { }
 
-  videoUploadLoading = false
-  videoUploadError: string | null = null
-  videoUploadSuccess: string | null = null
-  private listRenderScheduled = false
-
-  constructor(
-    private addPlanClientService: AddPlanClientService,
-    private deletePlanClientService: DeletePlanClientService,
-    private listPlanClientService: ListPlanClientService,
-    private uploadVideoService: UploadVideoToPlanService,
-    private attachVideoService: AttachVideoToPlanService
-  ) { }
-
-  ngOnInit(): void { this.reload() }
-
-  ngAfterViewInit(): void {
-    if (this.planContentRefs) {
-      this.planContentRefs.changes.subscribe(() => {
-        this.renderListContent()
-      })
-    }
-    this.renderListContent()
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (Object.prototype.hasOwnProperty.call(changes, "selectedUserId")) {
-      this.reload()
-    }
-  }
-
-  switchToCreate(): void {
-    this.mode = "create"
-    this.planClientSucces = null
-    this.planClientError = null
-    this.cancelDeletePlan()
-    this.items = []
-    this.showCreate = true
-    this.closeAttachMenus()
-    this.videoUploadError = null
-    this.videoUploadSuccess = null
-    this.videoUploadLoading = false
-    this.scheduleListRender()
-  }
-
-  switchToManage(): void {
-    this.mode = "manage"
-    this.planClientSucces = null
-    this.planClientError = null
-    this.cancelDeletePlan()
-    this.showCreate = false
-    this.items = []
-    this.closeAttachMenus()
-    this.videoUploadError = null
-    this.videoUploadSuccess = null
-    this.videoUploadLoading = false
-    this.queuedVideos = []
-    this.scheduleListRender()
-    this.loadList()
-  }
-
-  private reload(): void {
-    this.planClientSucces = null
-    this.planClientError = null
-    this.cancelDeletePlan()
-    this.closeAttachMenus()
-    if (this.mode === "manage") {
-      this.loadList()
-    }
-    else {
-      this.items = []
-      this.showCreate = true
-      this.scheduleListRender()
-    }
-  }
-
-  private normalize(item: any): PlanClientItem {
-    const result: PlanClientItem = { _id: "", userId: "", contenu: "", videos: [] }
-
-    if (item && item._id) {
-      result._id = String(item._id)
-    }
-    else if (item && item.id) {
-      result._id = String(item.id)
-    }
-    else {
-      result._id = ""
+    ngOnInit(): void {
+        this.resetCreateForm()
+        this.reload()
     }
 
-    if (item && item.userId) {
-      result.userId = String(item.userId)
-    }
-    else if (item && item.sharedWithClientId) {
-      result.userId = String(item.sharedWithClientId)
-    }
-    else {
-      result.userId = ""
-    }
-
-    if (item && item.title) {
-      result.title = String(item.title)
-    }
-    else {
-      result.title = ""
-    }
-
-    if (item && item.createdAt) {
-      try {
-        result.createdAt = new Date(item.createdAt).toISOString()
-      }
-      catch {
-        result.createdAt = ""
-      }
-    }
-    else {
-      result.createdAt = ""
-    }
-
-    if (item && Array.isArray(item.videos)) {
-      const vids: PlanVideo[] = []
-      for (const v of item.videos) {
-        const it: PlanVideo = { videoId: "", url: "", name: "", duration: 0 }
-        if (v && v.videoId) {
-          it.videoId = String(v.videoId)
+    ngOnChanges(changes: SimpleChanges): void {
+        if (Object.prototype.hasOwnProperty.call(changes, "selectedUserId")) {
+            this.reload()
         }
-        if (v && v.url) {
-          it.url = String(v.url)
+    }
+
+    switchToCreate(): void {
+        this.mode = "create"
+        this.planClientError = null
+        this.planClientSuccess = null
+        this.resetCreateForm()
+        this.deleteConfirmOpen = false
+        this.videoUploadError = null
+        this.videoUploadSuccess = null
+        this.videoUploadLoading = false
+    }
+
+    switchToManage(): void {
+        this.mode = "manage"
+        this.planClientError = null
+        this.planClientSuccess = null
+        this.deleteConfirmOpen = false
+        this.videoUploadError = null
+        this.videoUploadSuccess = null
+        this.videoUploadLoading = false
+        this.loadList()
+    }
+
+    private reload(): void {
+        if (this.mode === "manage") {
+            this.loadList()
         }
-        if (v && v.name) {
-          it.name = String(v.name)
+    }
+
+    private resetCreateForm(): void {
+        this.planClientTitre = ""
+        this.newExercises = []
+    }
+
+    addNewExercise(): void {
+        this.newExercises.push(this.createExerciseForm())
+    }
+
+    removeNewExercise(index: number): void {
+        if (index < 0 || index >= this.newExercises.length) {
+            return
         }
-        if (v && typeof v.duration === "number") {
-          it.duration = v.duration
+        this.newExercises.splice(index, 1)
+    }
+
+    moveNewExerciseUp(index: number): void {
+        if (index <= 0 || index >= this.newExercises.length) {
+            return
         }
-        vids.push(it)
-      }
-      result.videos = vids
-    }
-    else {
-      result.videos = []
+        const current = this.newExercises[index]
+        this.newExercises.splice(index, 1)
+        this.newExercises.splice(index - 1, 0, current)
     }
 
-    let rawContenu = ""
-    if (item && item.contenu) {
-      rawContenu = String(item.contenu)
-    }
-    result.contenu = this.sanitizeHtml(rawContenu)
-
-    return result
-  }
-
-  private async loadList(): Promise<void> {
-    const userId = this.selectedUserId
-    if (!userId) {
-      this.items = []
-      this.listLoading = false
-      this.listError = null
-      this.scheduleListRender()
-      return
-    }
-
-    this.listLoading = true
-    this.listError = null
-    try {
-      const res: any = await this.listPlanClientService.listPlanClientForUser(userId)
-
-      let raw: any[] = []
-      if (res && Array.isArray(res.items)) {
-        raw = res.items
-      }
-      else if (res && Array.isArray(res.data)) {
-        raw = res.data
-      }
-      else if (Array.isArray(res)) {
-        raw = res
-      }
-
-      this.items = raw.map(x => this.normalize(x))
-      this.showCreate = this.items.length === 0
-      this.listLoading = false
-      this.scheduleListRender()
-    }
-    catch {
-      this.items = []
-      this.listLoading = false
-      this.listError = "Impossible de charger les plans clients"
-      this.scheduleListRender()
-    }
-  }
-
-  getCreateButtonLabel(): string {
-    if (this.planClientLoading) {
-      return "Création..."
-    }
-    else {
-      return "Créer le plan client"
-    }
-  }
-
-  private focusEditor(): void {
-    if (this.editorRef && this.editorRef.nativeElement) {
-      this.editorRef.nativeElement.focus()
-    }
-  }
-
-  exec(cmd: string): void {
-    document.execCommand(cmd, false)
-    this.focusEditor()
-  }
-
-  onEditorInput(): void {
-    this.planClientContenu = this.getEditorHtml()
-  }
-
-  private getEditorHtml(): string {
-    if (this.editorRef && this.editorRef.nativeElement) {
-      return this.serializeNodes(Array.from(this.editorRef.nativeElement.childNodes))
-    }
-    return ""
-  }
-
-  private isEditorEmpty(html: string): boolean {
-    return this.isHtmlEmpty(html)
-  }
-
-  private resetEditor(): void {
-    this.planClientContenu = ""
-    if (this.editorRef && this.editorRef.nativeElement) {
-      this.renderHtmlInto(this.editorRef.nativeElement, "")
-    }
-  }
-
-  async handleCreatePlanClient(): Promise<void> {
-    this.planClientSucces = null
-    this.planClientError = null
-
-    const userId = this.selectedUserId
-    if (!userId) {
-      return
-    }
-
-    const html = this.getEditorHtml()
-    if (this.isEditorEmpty(html)) {
-      this.planClientError = "Le contenu ne peut pas être vide"
-      return
-    }
-
-    this.planClientLoading = true
-    try {
-      const res = await this.addPlanClientService.addPlanClient({
-        sharedWithClientId: userId,
-        contenu: html,
-        title: this.planClientTitre || ""
-      })
-
-      const createdPlanId = this.extractCreatedId(res)
-      this.planClientSucces = "Plan client créé avec succès"
-
-      if (createdPlanId && this.queuedVideos.length > 0) {
-        for (const file of this.queuedVideos) {
-          try {
-            await this.uploadVideoService.upload(createdPlanId, file)
-          }
-          catch (err) {
-            console.error(err)
-          }
+    moveNewExerciseDown(index: number): void {
+        if (index < 0 || index >= this.newExercises.length - 1) {
+            return
         }
-        if (this.queuedVideos.length > 0) {
-          this.planClientSucces = "Plan client créé + vidéos ajoutées"
+        const current = this.newExercises[index]
+        this.newExercises.splice(index, 1)
+        this.newExercises.splice(index + 1, 0, current)
+    }
+
+    async handleCreatePlanClient(): Promise<void> {
+        this.planClientError = null
+        this.planClientSuccess = null
+
+        const userId = this.selectedUserId
+        if (!userId) {
+            this.planClientError = "Choisissez un client avant de creer un plan"
+            return
         }
-      }
 
-      this.planClientLoading = false
-      this.resetEditor()
-      this.planClientTitre = ""
-      this.queuedVideos = []
-      this.showCreateAttachMenu = false
-
-      await this.loadList()
-    }
-    catch (err: any) {
-      this.planClientLoading = false
-      if (err && err.fields && err.fields.sharedWithClientId) {
-        this.planClientError = "Client manquant / invalide"
-      }
-      else if (err && err.fields && err.fields.contenu) {
-        this.planClientError = "Contenu invalide"
-      }
-      else {
-        this.planClientError = "Impossible de créer le plan client"
-      }
-    }
-  }
-
-  private extractCreatedId(res: any): string {
-    if (res?.item?._id) {
-      return String(res.item._id)
-    }
-    else if (res?.item?.id) {
-      return String(res.item.id)
-    }
-    else if (res?._id) {
-      return String(res._id)
-    }
-    else if (res?.id) {
-      return String(res.id)
-    }
-    else if (res?.data?._id) {
-      return String(res.data._id)
-    }
-    else if (res?.data?.id) {
-      return String(res.data.id)
-    }
-    else {
-      return ""
-    }
-  }
-
-  openDeletePlan(item: PlanClientItem): void {
-    if (!item || !item._id) {
-      return
-    }
-    this.deleteTargetId = item._id
-    const rawTitle = item.title
-    let cleanTitle = ""
-    if (rawTitle && typeof rawTitle === "string") {
-      cleanTitle = rawTitle.trim()
-    }
-    if (cleanTitle.length > 0) {
-      this.deleteTargetTitle = cleanTitle
-    }
-    else {
-      this.deleteTargetTitle = ""
-    }
-    this.deleteError = null
-    this.deleteConfirmOpen = true
-  }
-
-  cancelDeletePlan(): void {
-    this.deleteConfirmOpen = false
-    this.deleteError = null
-    this.deleteTargetId = null
-    this.deleteTargetTitle = ""
-  }
-
-  async confirmDeletePlan(): Promise<void> {
-    const targetId = this.deleteTargetId
-    if (!targetId) {
-      return
-    }
-    this.deleteError = null
-    try {
-      await this.deletePlanClientService.DeletePlanClient(targetId)
-      this.items = this.items.filter(i => i._id !== targetId)
-      if (this.items.length === 0) {
-        this.showCreate = true
-      }
-      this.cancelDeletePlan()
-      this.scheduleListRender()
-    }
-    catch (err: any) {
-      if (err && err.error && err.error.message) {
-        this.deleteError = err.error.message
-      }
-      else if (typeof err === "string") {
-        this.deleteError = err
-      }
-      else {
-        this.deleteError = "Suppression impossible"
-      }
-    }
-  }
-
-  getDeletePlanLabel(): string {
-    if (this.deleteTargetTitle && this.deleteTargetTitle.length > 0) {
-      return "Etes vous sur de vouloir supprimer le plan \"" + this.deleteTargetTitle + "\" ?"
-    }
-    else {
-      return "Etes vous sur de vouloir supprimer ce plan ?"
-    }
-  }
-
-  getPlanItemTitle(item: PlanClientItem): string {
-    if (item && item.title) {
-      const trimmed = item.title.trim()
-      if (trimmed.length > 0) {
-        return trimmed
-      }
-    }
-    if (item && item._id) {
-      return "Plan #" + item._id
-    }
-    return "Plan"
-  }
-
-  private scheduleListRender(): void {
-    if (this.listRenderScheduled) {
-      return
-    }
-    this.listRenderScheduled = true
-    setTimeout(() => {
-      this.listRenderScheduled = false
-      this.renderListContent()
-    })
-  }
-
-  private renderListContent(): void {
-    if (!this.planContentRefs) {
-      return
-    }
-    const hosts = this.planContentRefs.toArray()
-    for (let i = 0; i < hosts.length; i += 1) {
-      const ref = hosts[i]
-      const item = this.items[i]
-      if (ref && ref.nativeElement) {
-        let html = ""
-        if (item) {
-          html = item.contenu
+        if (this.newExercises.length === 0) {
+            this.planClientError = "Ajoutez au moins un exercice"
+            return
         }
-        this.renderHtmlInto(ref.nativeElement, html)
-      }
-    }
-  }
 
-  private renderHtmlInto(element: HTMLElement, html: string): void {
-    if (!element) {
-      return
-    }
-    while (element.firstChild) {
-      element.removeChild(element.firstChild)
-    }
-    if (!html || html.trim().length === 0) {
-      return
-    }
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, "text/html")
-    const fragment = document.createDocumentFragment()
-    for (const node of Array.from(doc.body.childNodes)) {
-      fragment.appendChild(node.cloneNode(true))
-    }
-    element.appendChild(fragment)
-  }
-
-  private sanitizeHtml(html: string): string {
-    if (!html) {
-      return ""
-    }
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, "text/html")
-    return this.serializeNodes(Array.from(doc.body.childNodes))
-  }
-
-  private serializeNodes(nodes: ChildNode[]): string {
-    const parts: string[] = []
-    for (const node of nodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        parts.push(this.escapeHtml(node.textContent || ""))
-        continue
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) {
-        continue
-      }
-      const element = node as HTMLElement
-      const tagName = (element.tagName || "").toLowerCase()
-      if (tagName === "script" || tagName === "style") {
-        continue
-      }
-      if (tagName === "span") {
-        parts.push(this.serializeNodes(Array.from(element.childNodes)))
-        continue
-      }
-      if (tagName === "div") {
-        const innerDiv = this.serializeNodes(Array.from(element.childNodes))
-        if (innerDiv.trim().length > 0) {
-          parts.push("<p>" + innerDiv + "</p>")
+        const payloadExercises: CreateExercisePayload[] = []
+        for (const ex of this.newExercises) {
+            payloadExercises.push(this.buildExercisePayload(ex))
         }
-        continue
-      }
-      const mapped = this.mapTag(tagName)
-      if (!mapped) {
-        parts.push(this.serializeNodes(Array.from(element.childNodes)))
-        continue
-      }
-      if (mapped === "br") {
-        parts.push("<br>")
-        continue
-      }
-      const inner = this.serializeNodes(Array.from(element.childNodes))
-      if (inner.trim().length === 0 && mapped !== "br") {
-        continue
-      }
-      if (mapped === "a") {
-        const href = this.sanitizeHref(element.getAttribute("href") || "")
-        if (href) {
-          parts.push("<a href=\"" + this.escapeAttribute(href) + "\" rel=\"noopener noreferrer\">" + inner + "</a>")
+
+        this.planClientLoading = true
+        try {
+            await this.addPlanClientService.addPlanClient({
+                sharedWithClientId: userId,
+                title: this.planClientTitre || "",
+                exercises: payloadExercises
+            })
+            this.planClientLoading = false
+            this.planClientSuccess = "Plan client cree"
+            this.resetCreateForm()
+            if (this.mode === "manage") {
+                await this.loadList()
+            }
+        }
+        catch (err: any) {
+            this.planClientLoading = false
+            if (typeof err === "string") {
+                this.planClientError = err
+            }
+            else if (err && err.fields && err.fields.exercises) {
+                this.planClientError = "Exercices invalides"
+            }
+            else {
+                this.planClientError = "Impossible de creer le plan client"
+            }
+        }
+    }
+
+    private loadPlanFromResponse(doc: PlanClientItem, keepExpanded: boolean): ManagedPlan {
+        const plan: ManagedPlan = {
+            _id: doc._id || "",
+            userId: doc.userId || "",
+            sharedWithClientId: doc.sharedWithClientId || "",
+            title: doc.title || "",
+            createdAt: doc.createdAt,
+            videos: this.normalizeVideos(doc.videos),
+            exercises: this.normalizeExercises(doc.exercises),
+            exercisesForm: [],
+            expanded: keepExpanded,
+            message: null,
+            error: null,
+            busy: false
+        }
+        plan.exercisesForm = plan.exercises.map(x => this.createExerciseForm(x))
+        return plan
+    }
+
+    private normalizeVideos(list: PlanClientVideo[] | undefined | null): PlanClientVideo[] {
+        const items: PlanClientVideo[] = []
+        if (Array.isArray(list)) {
+            for (const v of list) {
+                items.push({
+                    videoId: v && v.videoId ? String(v.videoId) : "",
+                    url: v && v.url ? String(v.url) : "",
+                    name: v && v.name ? String(v.name) : "",
+                    size: v && typeof v.size === "number" ? v.size : 0,
+                    format: v && v.format ? String(v.format) : "",
+                    duration: v && typeof v.duration === "number" ? v.duration : 0
+                })
+            }
+        }
+        return items
+    }
+
+    private normalizeExercises(list: PlanClientExercise[] | undefined | null): PlanClientExercise[] {
+        const items: PlanClientExercise[] = []
+        if (Array.isArray(list)) {
+            for (const ex of list) {
+                items.push({
+                    _id: ex && ex._id ? String(ex._id) : "",
+                    name: ex && ex.name ? String(ex.name) : "",
+                    type: ex && ex.type ? String(ex.type) : "",
+                    sets: ex && typeof ex.sets === "number" ? ex.sets : 1,
+                    reps: ex && typeof ex.reps === "number" ? ex.reps : 1,
+                    workSec: ex && typeof ex.workSec === "number" ? ex.workSec : 0,
+                    restSec: ex && typeof ex.restSec === "number" ? ex.restSec : 0,
+                    loadKg: ex && typeof ex.loadKg === "number" ? ex.loadKg : 0,
+                    rpe: ex && typeof ex.rpe === "number" ? ex.rpe : 0,
+                    hrZone: ex && ex.hrZone ? String(ex.hrZone) : "",
+                    notes: ex && ex.notes ? String(ex.notes) : "",
+                    video: {
+                        url: ex && ex.video && ex.video.url ? String(ex.video.url) : "",
+                        name: ex && ex.video && ex.video.name ? String(ex.video.name) : "",
+                        duration: ex && ex.video && typeof ex.video.duration === "number" ? ex.video.duration : 0
+                    }
+                })
+            }
+        }
+        return items
+    }
+
+    private createExerciseForm(source?: PlanClientExercise): ExerciseForm {
+        const base: ExerciseForm = {
+            _id: "",
+            name: "",
+            type: "muscu",
+            sets: 3,
+            reps: 12,
+            workSec: 0,
+            restSec: 90,
+            loadKg: 0,
+            rpe: 0,
+            hrZone: "",
+            notes: "",
+            videoUrl: "",
+            videoName: "",
+            videoDuration: 0,
+            saving: false,
+            success: null,
+            error: null
+        }
+
+        if (!source) {
+            return base
+        }
+
+        base._id = source._id || ""
+        base.name = source.name || ""
+        base.type = this.ensureExerciseType(source.type)
+        base.sets = typeof source.sets === "number" ? source.sets : base.sets
+        base.reps = typeof source.reps === "number" ? source.reps : base.reps
+        base.workSec = typeof source.workSec === "number" ? source.workSec : base.workSec
+        base.restSec = typeof source.restSec === "number" ? source.restSec : base.restSec
+        base.loadKg = typeof source.loadKg === "number" ? source.loadKg : base.loadKg
+        base.rpe = typeof source.rpe === "number" ? source.rpe : base.rpe
+        base.hrZone = source.hrZone || ""
+        base.notes = source.notes || ""
+        if (source.video) {
+            base.videoUrl = source.video.url || ""
+            base.videoName = source.video.name || ""
+            base.videoDuration = typeof source.video.duration === "number" ? source.video.duration : 0
+        }
+
+        return base
+    }
+
+    private buildExercisePayload(form: ExerciseForm): CreateExercisePayload {
+        const payload: CreateExercisePayload = {
+            name: form.name ? String(form.name).trim() : "",
+            type: this.ensureExerciseType(form.type),
+            sets: this.toPositiveInt(form.sets, 1),
+            reps: this.toPositiveInt(form.reps, 1),
+            workSec: this.toNonNegativeInt(form.workSec, 0),
+            restSec: this.toNonNegativeInt(form.restSec, 0),
+            loadKg: this.toNonNegativeNumber(form.loadKg, 0),
+            rpe: this.toBoundedInt(form.rpe, 0, 0, 10),
+            hrZone: form.hrZone ? String(form.hrZone).trim() : "",
+            notes: form.notes ? String(form.notes).trim() : "",
+            video: {
+                url: form.videoUrl ? String(form.videoUrl).trim() : "",
+                name: form.videoName ? String(form.videoName).trim() : "",
+                duration: this.toNonNegativeInt(form.videoDuration, 0)
+            }
+        }
+        return payload
+    }
+
+    private ensureExerciseType(value: string | undefined): string {
+        if (value) {
+            for (const allowed of EXERCISE_TYPES) {
+                if (allowed === value) {
+                    return value
+                }
+            }
+        }
+        return "muscu"
+    }
+
+    private toPositiveInt(value: any, fallback: number): number {
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) {
+            return fallback
+        }
+        const rounded = Math.round(parsed)
+        if (rounded < 1) {
+            return Math.max(1, fallback)
+        }
+        return rounded
+    }
+
+    private toNonNegativeInt(value: any, fallback: number): number {
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) {
+            return fallback
+        }
+        const rounded = Math.round(parsed)
+        if (rounded < 0) {
+            return 0
+        }
+        return rounded
+    }
+
+    private toNonNegativeNumber(value: any, fallback: number): number {
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) {
+            return fallback
+        }
+        if (parsed < 0) {
+            return 0
+        }
+        return parsed
+    }
+
+    private toBoundedInt(value: any, fallback: number, min: number, max: number): number {
+        let result = this.toNonNegativeInt(value, fallback)
+        if (result < min) {
+            result = min
+        }
+        if (result > max) {
+            result = max
+        }
+        return result
+    }
+
+    private async loadList(): Promise<void> {
+        const userId = this.selectedUserId
+        if (!userId) {
+            this.plans = []
+            this.listError = null
+            return
+        }
+        this.listLoading = true
+        this.listError = null
+        try {
+            const res = await this.listPlanClientService.listPlanClientForUser(userId)
+            const plans: ManagedPlan[] = []
+            if (res && Array.isArray(res.items)) {
+                for (const raw of res.items) {
+                    plans.push(this.loadPlanFromResponse(raw, false))
+                }
+            }
+            this.plans = plans
+            this.listLoading = false
+        }
+        catch (err: any) {
+            this.listLoading = false
+            if (typeof err === "string") {
+                this.listError = err
+            }
+            else if (err && err.error && err.error.message) {
+                this.listError = err.error.message
+            }
+            else {
+                this.listError = "Impossible de charger les plans"
+            }
+        }
+    }
+
+    togglePlan(plan: ManagedPlan): void {
+        plan.expanded = !plan.expanded
+    }
+
+    planTitle(plan: ManagedPlan): string {
+        if (plan.title && plan.title.trim()) {
+            return plan.title.trim()
+        }
+        return "Plan sans titre"
+    }
+
+    formatDate(value?: string): string {
+        if (!value) {
+            return ""
+        }
+        const date = new Date(value)
+        if (Number.isNaN(date.getTime())) {
+            return ""
+        }
+        return date.toLocaleString("fr-FR", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit"
+        })
+    }
+
+    async addExerciseToPlan(plan: ManagedPlan): Promise<void> {
+        plan.busy = true
+        plan.error = null
+        plan.message = null
+        try {
+            const res = await this.quickAddExerciseService.add(plan._id)
+            if (res && res.item) {
+                this.applyUpdatedPlan(res.item, plan._id, true)
+                plan.message = "Exercice ajoute"
+            }
+            plan.busy = false
+        }
+        catch (err: any) {
+            plan.busy = false
+            if (typeof err === "string") {
+                plan.error = err
+            }
+            else if (err && err.error && err.error.message) {
+                plan.error = err.error.message
+            }
+            else {
+                plan.error = "Ajout impossible"
+            }
+        }
+    }
+
+    async saveExercise(plan: ManagedPlan, exercise: ExerciseForm): Promise<void> {
+        if (!exercise._id) {
+            exercise.error = "Identifiant exercice manquant"
+            return
+        }
+        exercise.saving = true
+        exercise.error = null
+        exercise.success = null
+        try {
+            const patch = this.buildExercisePayload(exercise)
+            const res = await this.updateExerciseService.update(plan._id, exercise._id, patch)
+            if (res && res.item) {
+                this.applyUpdatedPlan(res.item, plan._id, plan.expanded)
+                const updatedPlan = this.findPlan(plan._id)
+                if (updatedPlan) {
+                    const updatedExercise = updatedPlan.exercisesForm.find(x => x._id === exercise._id)
+                    if (updatedExercise) {
+                        updatedExercise.success = "Enregistre"
+                    }
+                }
+            }
+            exercise.saving = false
+        }
+        catch (err: any) {
+            exercise.saving = false
+            if (typeof err === "string") {
+                exercise.error = err
+            }
+            else if (err && err.error && err.error.message) {
+                exercise.error = err.error.message
+            }
+            else {
+                exercise.error = "Sauvegarde impossible"
+            }
+        }
+    }
+
+    async removeExercise(plan: ManagedPlan, exercise: ExerciseForm): Promise<void> {
+        if (!exercise._id) {
+            return
+        }
+        exercise.saving = true
+        exercise.error = null
+        exercise.success = null
+        try {
+            const res = await this.removeExerciseService.remove(plan._id, exercise._id)
+            if (res && res.item) {
+                this.applyUpdatedPlan(res.item, plan._id, plan.expanded)
+            }
+        }
+        catch (err: any) {
+            exercise.saving = false
+            if (typeof err === "string") {
+                exercise.error = err
+            }
+            else if (err && err.error && err.error.message) {
+                exercise.error = err.error.message
+            }
+            else {
+                exercise.error = "Suppression impossible"
+            }
+            return
+        }
+    }
+
+    async moveExercise(plan: ManagedPlan, index: number, direction: "up" | "down"): Promise<void> {
+        const list = plan.exercisesForm
+        if (index < 0 || index >= list.length) {
+            return
+        }
+        if (direction === "up") {
+            if (index === 0) {
+                return
+            }
+            const current = list[index]
+            list.splice(index, 1)
+            list.splice(index - 1, 0, current)
         }
         else {
-          parts.push(inner)
+            if (index >= list.length - 1) {
+                return
+            }
+            const current = list[index]
+            list.splice(index, 1)
+            list.splice(index + 1, 0, current)
         }
-        continue
-      }
-      parts.push("<" + mapped + ">" + inner + "</" + mapped + ">")
-    }
-    return parts.join("")
-  }
 
-  private mapTag(tagName: string): string | null {
-    if (tagName === "b" || tagName === "strong") {
-      return "strong"
-    }
-    if (tagName === "i" || tagName === "em") {
-      return "em"
-    }
-    if (tagName === "u") {
-      return "u"
-    }
-    if (tagName === "p") {
-      return "p"
-    }
-    if (tagName === "h1") {
-      return "h1"
-    }
-    if (tagName === "h2") {
-      return "h2"
-    }
-    if (tagName === "blockquote") {
-      return "blockquote"
-    }
-    if (tagName === "ul") {
-      return "ul"
-    }
-    if (tagName === "ol") {
-      return "ol"
-    }
-    if (tagName === "li") {
-      return "li"
-    }
-    if (tagName === "a") {
-      return "a"
-    }
-    if (tagName === "br") {
-      return "br"
-    }
-    return null
-  }
+        const orderedIds: string[] = []
+        for (const ex of list) {
+            if (ex._id) {
+                orderedIds.push(ex._id)
+            }
+        }
 
-  private sanitizeHref(href: string): string | null {
-    const trimmed = (href || "").trim()
-    if (trimmed.length === 0) {
-      return null
-    }
-    const lower = trimmed.toLowerCase()
-    if (lower.startsWith("javascript:") || lower.startsWith("data:")) {
-      return null
-    }
-    if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:") || lower.startsWith("tel:")) {
-      return trimmed
-    }
-    if (lower.startsWith("/")) {
-      return trimmed
-    }
-    return null
-  }
+        if (orderedIds.length === 0) {
+            return
+        }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;")
-  }
-
-  private escapeAttribute(value: string): string {
-    return this.escapeHtml(value)
-  }
-
-  private isHtmlEmpty(html: string): boolean {
-    if (!html) {
-      return true
-    }
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, "text/html")
-    const text = (doc.body.textContent || "").trim()
-    if (text.length > 0) {
-      return false
-    }
-    const hasBreak = doc.body.querySelector("br")
-    return !hasBreak
-  }
-
-  hasAny(): boolean {
-    if (this.items.length > 0) {
-      return true
-    }
-    else {
-      return false
-    }
-  }
-
-  toggleCreateAttachMenu(): void {
-    this.showCreateAttachMenu = !this.showCreateAttachMenu
-  }
-
-  toggleAttachMenu(planId: string): void {
-    if (this.showAttachMenuFor === planId) {
-      this.showAttachMenuFor = null
-    }
-    else {
-      this.showAttachMenuFor = planId
-    }
-  }
-
-  closeAttachMenus(): void {
-    this.showCreateAttachMenu = false
-    this.showAttachMenuFor = null
-  }
-
-  openNewPlanVideoPicker(): void {
-    this.closeAttachMenus()
-    if (this.newPlanVideoInput && this.newPlanVideoInput.nativeElement) {
-      this.newPlanVideoInput.nativeElement.value = ""
-      this.newPlanVideoInput.nativeElement.click()
-    }
-  }
-
-  handleNewPlanVideoPicked(event: Event): void {
-    const input = event.target as HTMLInputElement
-    if (!input || !input.files || input.files.length === 0) {
-      return
-    }
-    for (const f of Array.from(input.files)) {
-      this.queuedVideos.push(f)
-    }
-  }
-
-  removeQueuedVideo(index: number): void {
-    if (index >= 0 && index < this.queuedVideos.length) {
-      this.queuedVideos.splice(index, 1)
-    }
-  }
-
-  openVideoPicker(planId: string): void {
-    this.videoUploadError = null
-    this.videoUploadSuccess = null
-    this.targetPlanForUpload = planId
-    this.closeAttachMenus()
-
-    if (this.planVideoInput && this.planVideoInput.nativeElement) {
-      this.planVideoInput.nativeElement.value = ""
-      this.planVideoInput.nativeElement.click()
-    }
-  }
-
-  async handleVideoPicked(event: Event): Promise<void> {
-    this.videoUploadError = null
-    this.videoUploadSuccess = null
-
-    const input = event.target as HTMLInputElement
-    if (!input || !input.files || input.files.length === 0) {
-      return
+        plan.busy = true
+        plan.message = null
+        plan.error = null
+        try {
+            const res = await this.reorderExercisesService.reorder(plan._id, orderedIds)
+            if (res && res.item) {
+                this.applyUpdatedPlan(res.item, plan._id, plan.expanded)
+            }
+            plan.busy = false
+        }
+        catch (err: any) {
+            plan.busy = false
+            if (typeof err === "string") {
+                plan.error = err
+            }
+            else if (err && err.error && err.error.message) {
+                plan.error = err.error.message
+            }
+            else {
+                plan.error = "Reorganisation impossible"
+            }
+        }
     }
 
-    const planId = this.targetPlanForUpload
-    if (!planId) {
-      this.videoUploadError = "Plan client inconnu"
-      return
+    openDeletePlan(plan: ManagedPlan): void {
+        this.deleteConfirmOpen = true
+        this.deleteTargetId = plan._id
+        this.deleteTargetTitle = this.planTitle(plan)
+        this.deleteError = null
     }
 
-    this.videoUploadLoading = true
-    try {
-      for (const file of Array.from(input.files)) {
-        await this.uploadVideoService.upload(planId, file)
-      }
-
-      await this.loadList()
-      this.videoUploadSuccess = "Vidéo(s) ajoutée(s) au plan"
-      this.targetPlanForUpload = null
-      this.videoUploadLoading = false
-    }
-    catch {
-      this.videoUploadLoading = false
-      this.videoUploadError = "Upload refusé ou échoué"
-    }
-  }
-
-  async detachVideo(planId: string, videoId: string): Promise<void> {
-    if (!planId || !videoId) {
-      return
-    }
-    const ok = confirm("Retirer cette vidéo du plan ?")
-    if (!ok) {
-      return
+    cancelDeletePlan(): void {
+        this.deleteConfirmOpen = false
+        this.deleteTargetId = null
+        this.deleteTargetTitle = ""
+        this.deleteError = null
     }
 
-    try {
-      const res = await this.attachVideoService.detach(planId, videoId)
-      if (res && res.item) {
-        const updated = this.normalize(res.item)
-        this.items = this.items.map(i => {
-          if (i._id === updated._id) {
-            return updated
-          }
-          else {
-            return i
-          }
-        })
-        this.scheduleListRender()
-      }
+    async confirmDeletePlan(): Promise<void> {
+        if (!this.deleteTargetId) {
+            return
+        }
+        try {
+            await this.deletePlanClientService.DeletePlanClient(this.deleteTargetId)
+            this.plans = this.plans.filter(p => p._id !== this.deleteTargetId)
+            this.cancelDeletePlan()
+        }
+        catch (err: any) {
+            if (typeof err === "string") {
+                this.deleteError = err
+            }
+            else if (err && err.error && err.error.message) {
+                this.deleteError = err.error.message
+            }
+            else {
+                this.deleteError = "Suppression impossible"
+            }
+        }
     }
-    catch {
-      alert("Impossible de retirer la vidéo")
+
+    openPlanVideoPicker(planId: string): void {
+        if (!this.planVideoInput) {
+            return
+        }
+        this.targetPlanForUpload = planId
+        this.planVideoInput.nativeElement.value = ""
+        this.planVideoInput.nativeElement.click()
     }
-  }
+
+    async handleVideoPicked(event: Event): Promise<void> {
+        const input = event.target as HTMLInputElement
+        if (!input || !input.files || input.files.length === 0) {
+            return
+        }
+        const planId = this.targetPlanForUpload
+        if (!planId) {
+            return
+        }
+        this.videoUploadError = null
+        this.videoUploadSuccess = null
+        this.videoUploadLoading = true
+
+        try {
+            for (let i = 0; i < input.files.length; i += 1) {
+                const file = input.files.item(i)
+                if (file) {
+                    const res = await this.uploadVideoService.upload(planId, file)
+                    if (res && res.item) {
+                        this.applyUpdatedPlan(res.item, planId, true)
+                    }
+                }
+            }
+            this.videoUploadSuccess = "Video ajoutee"
+            this.videoUploadLoading = false
+        }
+        catch (err: any) {
+            this.videoUploadLoading = false
+            if (typeof err === "string") {
+                this.videoUploadError = err
+            }
+            else if (err && err.error && err.error.message) {
+                this.videoUploadError = err.error.message
+            }
+            else {
+                this.videoUploadError = "Ajout video impossible"
+            }
+        }
+        finally {
+            this.targetPlanForUpload = null
+        }
+    }
+
+    async detachVideo(plan: ManagedPlan, videoId: string): Promise<void> {
+        plan.busy = true
+        plan.error = null
+        plan.message = null
+        try {
+            const res = await this.attachVideoService.detach(plan._id, videoId)
+            if (res && res.item) {
+                this.applyUpdatedPlan(res.item, plan._id, plan.expanded)
+                plan.message = "Video retiree"
+            }
+            plan.busy = false
+        }
+        catch (err: any) {
+            plan.busy = false
+            if (typeof err === "string") {
+                plan.error = err
+            }
+            else if (err && err.error && err.error.message) {
+                plan.error = err.error.message
+            }
+            else {
+                plan.error = "Suppression video impossible"
+            }
+        }
+    }
+
+    trackPlan(_: number, plan: ManagedPlan): string {
+        return plan._id
+    }
+
+    trackExercise(index: number, exercise: ExerciseForm): string {
+        if (exercise._id) {
+            return exercise._id
+        }
+        return `new-${index}`
+    }
+
+    private applyUpdatedPlan(raw: PlanClientItem, planId: string, keepExpanded: boolean): void {
+        const updated = this.loadPlanFromResponse(raw, keepExpanded)
+        const index = this.plans.findIndex(p => p._id === planId)
+        if (index >= 0) {
+            this.plans[index] = updated
+        }
+        else {
+            this.plans.push(updated)
+        }
+    }
+
+    private findPlan(planId: string): ManagedPlan | undefined {
+        return this.plans.find(p => p._id === planId)
+    }
 }

@@ -178,54 +178,51 @@ async function handleCreatePlanClient(req, res) {
             return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Auth requise" } })
         }
 
-        const userId = String(me._id)
         const body = req.body || {}
+        const userId = String(me._id)
 
-        let sharedWithClientId
+        let sharedWithClientId = ""
         if (body && body.sharedWithClientId) {
             sharedWithClientId = String(body.sharedWithClientId)
         }
-        else {
-            sharedWithClientId = ""
-        }
 
-        let contenu
-        if (body && body.contenu) {
-            contenu = String(body.contenu)
-        }
-        else {
-            contenu = ""
-        }
-
-        let title
+        let title = ""
         if (body && body.title) {
             title = String(body.title)
         }
-        else {
-            title = ""
+
+        let contenu = ""
+        if (body && body.contenu) {
+            contenu = String(body.contenu)
+        }
+
+        let exercises = []
+        if (body && Array.isArray(body.exercises)) {
+            exercises = body.exercises
         }
 
         if (!sharedWithClientId) {
             return res.status(400).json({ error: { code: "BAD_REQUEST", message: "sharedWithClientId requis" } })
         }
-        if (!contenu || !contenu.trim()) {
-            return res.status(400).json({ error: { code: "BAD_REQUEST", message: "contenu requis" } })
-        }
 
         const result = await plantClientService.createPlanClient({
             userId,
             sharedWithClientId,
-            contenu,
             title,
+            contenu,
+            exercises
         })
 
         return res.status(201).json({
             message: "plan client cree",
-            data: result
+            item: mapPlanForResponse(result)
         })
     }
     catch (err) {
         if (err && err.code === "INVALID_ID") {
+            return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
+        }
+        if (err && err.code === "VALIDATION_ERROR") {
             return res.status(400).json({ error: { code: err.code, message: err.message, ...err.meta } })
         }
         if (err && err.code === "NOT_FOUND") {
@@ -273,67 +270,140 @@ async function handleDeletePlanClient(req, res) {
     }
 }
 
-function mapPlanForResponse(doc) {
-    const out = {}
+function mapExerciseForResponse(doc) {
+    const out = {
+        _id: "",
+        name: "",
+        type: "",
+        sets: 0,
+        reps: 0,
+        workSec: 0,
+        restSec: 0,
+        loadKg: 0,
+        rpe: 0,
+        hrZone: "",
+        notes: "",
+        video: { url: "", name: "", duration: 0 }
+    }
 
     if (doc && doc._id) {
         out._id = String(doc._id)
-    } 
-    else {
-        out._id = ""
+    }
+    if (doc && doc.name) {
+        out.name = String(doc.name)
+    }
+    if (doc && doc.type) {
+        out.type = String(doc.type)
+    }
+    if (doc && typeof doc.sets === "number") {
+        out.sets = doc.sets
+    }
+    if (doc && typeof doc.reps === "number") {
+        out.reps = doc.reps
+    }
+    if (doc && typeof doc.workSec === "number") {
+        out.workSec = doc.workSec
+    }
+    if (doc && typeof doc.restSec === "number") {
+        out.restSec = doc.restSec
+    }
+    if (doc && typeof doc.loadKg === "number") {
+        out.loadKg = doc.loadKg
+    }
+    if (doc && typeof doc.rpe === "number") {
+        out.rpe = doc.rpe
+    }
+    if (doc && doc.hrZone) {
+        out.hrZone = String(doc.hrZone)
+    }
+    if (doc && doc.notes) {
+        out.notes = String(doc.notes)
+    }
+    if (doc && doc.video) {
+        const video = { url: "", name: "", duration: 0 }
+        if (doc.video.url) {
+            video.url = String(doc.video.url)
+        }
+        if (doc.video.name) {
+            video.name = String(doc.video.name)
+        }
+        if (typeof doc.video.duration === "number") {
+            video.duration = doc.video.duration
+        }
+        out.video = video
+    }
+    return out
+}
+
+function mapPlanForResponse(doc) {
+    const out = {
+        _id: "",
+        userId: "",
+        sharedWithClientId: "",
+        title: "",
+        contenu: "",
+        createdAt: "",
+        videos: [],
+        exercises: []
     }
 
+    if (doc && doc._id) {
+        out._id = String(doc._id)
+    }
     if (doc && doc.userId) {
         out.userId = String(doc.userId)
-    } 
-    else {
-        out.userId = ""
     }
-
     if (doc && doc.sharedWithClientId) {
         out.sharedWithClientId = String(doc.sharedWithClientId)
-    } 
-    else {
-        out.sharedWithClientId = ""
     }
-
+    if (doc && doc.title) {
+        out.title = String(doc.title)
+    }
     if (doc && doc.contenu) {
         out.contenu = String(doc.contenu)
-    } 
-    else {
-        out.contenu = ""
+    }
+    if (doc && doc.createdAt) {
+        try {
+            out.createdAt = new Date(doc.createdAt).toISOString()
+        }
+        catch {
+            out.createdAt = ""
+        }
     }
 
-    out.videos = []
     if (doc && Array.isArray(doc.videos)) {
+        const list = []
         for (const v of doc.videos) {
-            const it = {}
+            const it = { videoId: "", url: "", name: "", size: 0, format: "", duration: 0 }
             if (v && v.videoId) {
                 it.videoId = String(v.videoId)
-            } 
-            else {
-                it.videoId = ""
             }
             if (v && v.url) {
                 it.url = String(v.url)
-            } 
-            else {
-                it.url = ""
             }
             if (v && v.name) {
                 it.name = String(v.name)
-            } 
-            else {
-                it.name = ""
             }
-            if (typeof v.duration === "number") {
+            if (v && typeof v.size === "number") {
+                it.size = v.size
+            }
+            if (v && v.format) {
+                it.format = String(v.format)
+            }
+            if (v && typeof v.duration === "number") {
                 it.duration = v.duration
-            } 
-            else {
-                it.duration = 0
             }
-            out.videos.push(it)
+            list.push(it)
         }
+        out.videos = list
+    }
+
+    if (doc && Array.isArray(doc.exercises)) {
+        const exercises = []
+        for (const ex of doc.exercises) {
+            exercises.push(mapExerciseForResponse(ex))
+        }
+        out.exercises = exercises
     }
 
     return out

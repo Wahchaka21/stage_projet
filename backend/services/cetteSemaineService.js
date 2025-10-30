@@ -1,3 +1,4 @@
+const mongoose = require("mongoose")
 const rubriqueSchema = require("../schemas/rubriqueSchema")
 const { isValideObjectId } = require("../utils/validator")
 const persoError = require("../utils/error")
@@ -85,10 +86,37 @@ async function listCetteSemaineForClient(clientId, opts) {
             filter.createdAt = createdAt
         }
 
-        return await rubriqueSchema
+        const main = await rubriqueSchema
             .find(filter)
             .sort({ createdAt: 1 })
             .lean()
+
+        if (Array.isArray(main) && main.length > 0) {
+            return main
+        }
+
+        const collection = rubriqueSchema?.db?.collection
+            ? rubriqueSchema.db.collection("cettesemaines")
+            : null
+
+        if (!collection) {
+            return main
+        }
+
+        const legacyFilter = { ...filter }
+        if (legacyFilter.sharedWithClientId) {
+            legacyFilter.sharedWithClientId = new mongoose.Types.ObjectId(clientId)
+        }
+        if (legacyFilter.createdAt) {
+            legacyFilter.createdAt = legacyFilter.createdAt
+        }
+
+        const legacy = await collection
+            .find(legacyFilter)
+            .sort({ createdAt: 1 })
+            .toArray()
+
+        return legacy
     }
     catch (err) {
         if(err && err.type) {
@@ -111,10 +139,37 @@ async function listCetteSemaineForUser(userId, opts) {
             filter.createdAt = createdAt
         }
 
-        return await rubriqueSchema
+        const main = await rubriqueSchema
             .find(filter)
             .sort({ createdAt: 1 })
             .lean()
+
+        if (Array.isArray(main) && main.length > 0) {
+            return main
+        }
+
+        const collection = rubriqueSchema?.db?.collection
+            ? rubriqueSchema.db.collection("cettesemaines")
+            : null
+
+        if (!collection) {
+            return main
+        }
+
+        const legacyFilter = { ...filter }
+        if (legacyFilter.sharedWithClientId) {
+            legacyFilter.sharedWithClientId = new mongoose.Types.ObjectId(userId)
+        }
+        if (legacyFilter.createdAt) {
+            legacyFilter.createdAt = legacyFilter.createdAt
+        }
+
+        const legacy = await collection
+            .find(legacyFilter)
+            .sort({ createdAt: 1 })
+            .toArray()
+
+        return legacy
     }
     catch(err) {
         if (err && err.type) {

@@ -9,14 +9,34 @@ export interface PlanVideo {
     duration: number
 }
 
+export interface PlanExercise {
+    _id: string
+    name: string
+    type: string
+    sets: number
+    reps: number
+    workSec: number
+    restSec: number
+    loadKg: number
+    rpe: number
+    hrZone: string
+    notes: string
+    video: {
+        url: string
+        name: string
+        duration: number
+    }
+}
+
 export interface planClient {
     _id: string
     userId: string
     sharedWithClientId: string
-    contenu: string
+    contenu?: string
     title?: string
     createdAt?: string
     videos?: PlanVideo[]
+    exercises?: PlanExercise[]
 }
 
 export interface cetteSemaineInt {

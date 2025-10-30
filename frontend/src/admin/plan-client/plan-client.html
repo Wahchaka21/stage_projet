@@ -1,194 +1,268 @@
-<div class="h-full min-h-0 flex flex-col">
-    <div class="mb-4 flex flex-wrap gap-3">
-        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer"
-            [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'create', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'create' }"
-            (click)="switchToCreate()">
+<div class="plan-client-root">
+    <div class="mode-switch">
+        <button type="button" [class.active]="mode === 'create'" (click)="switchToCreate()">
             Creer un plan client
         </button>
-        <button type="button" class="rounded-full border px-4 py-2 text-sm font-semibold transition cursor-pointer"
-            [ngClass]="{ 'bg-[#315f92] text-white border-[#315f92]': mode === 'manage', 'bg-white text-[#315f92] border-[#315f92]/40': mode !== 'manage' }"
-            (click)="switchToManage()">
-            Voir / supprimer les plans
+        <button type="button" [class.active]="mode === 'manage'" (click)="switchToManage()">
+            Gerer les plans
         </button>
     </div>
 
-    <div *ngIf="mode === 'create'" class="rounded-2xl border border-[#e1e9f5] bg-[#f5f7fb] p-1 shadow-inner mb-6">
-        <h3 class="text-lg font-semibold text-[#315f92] mb-2">Créer un plan client</h3>
-
-        <label class="block text-sm font-semibold text-[#315f92] mb-2">Titre du plan</label>
-        <input type="text" [(ngModel)]="planClientTitre" placeholder="Ex : Séance 1"
-            class="mb-3 w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2 text-sm text-[#315f92] focus:border-[#315f92] focus:outline-none" />
-
-        <div class="mb-2 flex flex-wrap gap-2">
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('bold')">Gras</button>
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('italic')">Italique</button>
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('underline')">Souligné</button>
-
-            <span class="mx-2 inline-block w-px bg-[#d9e2f3]"></span>
-
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('justifyLeft')">Gauche</button>
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('justifyCenter')">Centre</button>
-            <button type="button"
-                class="rounded-md border px-3 py-1 text-sm text-[#315f92] hover:bg-white cursor-pointer"
-                (click)="exec('justifyRight')">Droite</button>
-        </div>
-
-        <label class="block text-sm font-semibold text-[#315f92] mb-2">
-            Contenu
+    <section *ngIf="mode === 'create'" class="create-panel">
+        <h3>Informations du plan</h3>
+        <label class="field">
+            <span>Titre</span>
+            <input type="text" [(ngModel)]="planClientTitre" placeholder="Ex : Seance 1" />
         </label>
 
-        <div #editor contenteditable="true" (input)="onEditorInput()" class="h-[28vh] overflow-y-auto
-             w-full rounded-xl border border-[#315f92]/30 bg-white px-3 py-2
-             text-sm text-[#315f92] focus-within:border-[#315f92] focus:outline-none
-             whitespace-pre-wrap break-words">
+        <div class="messages">
+            <p *ngIf="planClientSuccess" class="msg success">{{ planClientSuccess }}</p>
+            <p *ngIf="planClientError" class="msg error">{{ planClientError }}</p>
         </div>
 
-        <div class="mt-3 flex flex-wrap items-center gap-3">
-            <div class="relative">
-                <button type="button"
-                    class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                    (click)="toggleCreateAttachMenu()">
-                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
-                    </svg>
-                    <span>Pièce jointe</span>
-                </button>
-
-                <div *ngIf="showCreateAttachMenu"
-                    class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
-                    <button type="button"
-                        class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                        (click)="openNewPlanVideoPicker()">
-                        Ajouter une vidéo
-                    </button>
-                </div>
-            </div>
-
-            <div *ngIf="queuedVideos.length > 0" class="flex flex-wrap gap-2">
-                <span *ngFor="let f of queuedVideos; let i = index"
-                    class="inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-xs text-[#315f92]">
-                    <span class="max-w-[180px] truncate">{{ f.name }}</span>
-                    <button type="button" (click)="removeQueuedVideo(i)" title="Retirer"
-                        class="rounded-full border px-2 leading-none hover:bg-[#315f92]/10">×</button>
-                </span>
-            </div>
+        <div class="exercise-actions">
+            <button type="button" (click)="addNewExercise()">+ Ajouter un exercice</button>
         </div>
 
-        <div class="mt-3 flex items-center gap-3">
-            <button type="button" (click)="handleCreatePlanClient()" [disabled]="planClientLoading"
-                class="rounded-full bg-[#315f92] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#24476e] disabled:opacity-60 cursor-pointer">
-                {{ getCreateButtonLabel() }}
-            </button>
-
-            <span *ngIf="planClientSucces" class="text-sm font-semibold text-green-600">{{ planClientSucces }}</span>
-            <span *ngIf="planClientError" class="text-sm font-semibold text-red-600">{{ planClientError }}</span>
-        </div>
-    </div>
-
-    <div *ngIf="mode === 'manage'" class="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2">
-        <p class="text-sm text-[#527bab]" *ngIf="listLoading">Chargement des plans…</p>
-        <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700" *ngIf="listError">{{
-            listError }}</p>
-        <p class="text-sm text-[#527bab]" *ngIf="!listLoading && items.length === 0 && !listError">
-            Aucun plan client pour cet utilisateur.
+        <p *ngIf="newExercises.length === 0" class="empty-hint">
+            Cliquez sur le bouton + pour preparer un exercice.
         </p>
 
-        <article *ngFor="let item of items"
-            class="rounded-2xl border border-[#e1e9f5] bg-white p-4 text-[#315f92] shadow-sm">
-            <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h4 class="text-base font-semibold">
-                    {{ getPlanItemTitle(item) }}
-                </h4>
-
-                <div class="flex items-center gap-2">
-                    <div class="relative">
-                        <button type="button"
-                            class="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[#315f92]/30 bg-white px-3 py-1 text-sm text-[#315f92] transition hover:bg-[#315f92]/10"
-                            (click)="toggleAttachMenu(item._id)">
-                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15V8a5 5 0 0 0-10 0v9a3 3 0 1 0 6 0V9" />
-                            </svg>
-                            <span>Pièce jointe</span>
-                        </button>
-
-                        <div *ngIf="showAttachMenuFor === item._id"
-                            class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-[#315f92]/20 bg-white p-2 shadow-xl">
-                            <button type="button"
-                                class="w-full rounded-lg px-4 py-2 text-left text-sm text-[#315f92] transition hover:bg-[#315f92]/10 cursor-pointer"
-                                (click)="openVideoPicker(item._id)">
-                                Ajouter une vidéo
-                            </button>
-                        </div>
-                    </div>
-
-                    <button type="button"
-                        class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50 cursor-pointer"
-                        (click)="openDeletePlan(item)">
-                        Supprimer le plan
-                    </button>
+        <div *ngFor="let ex of newExercises; let i = index; trackBy: trackExercise" class="exercise-card">
+            <header>
+                <h4>Exercice {{ i + 1 }}</h4>
+                <div class="exercise-card-actions">
+                    <button type="button" (click)="moveNewExerciseUp(i)">Monter</button>
+                    <button type="button" (click)="moveNewExerciseDown(i)">Descendre</button>
+                    <button type="button" (click)="removeNewExercise(i)">Supprimer</button>
                 </div>
             </header>
 
-            <div #planContentHost
-                class="prose max-w-none prose-p:my-2 prose-ul:list-disc prose-ol:list-decimal prose-li:my-1"></div>
+            <div class="grid">
+                <label class="field">
+                    <span>Nom</span>
+                    <input type="text" [(ngModel)]="ex.name" placeholder="Nom de l exercice" />
+                </label>
+                <label class="field">
+                    <span>Type</span>
+                    <select [(ngModel)]="ex.type">
+                        <option *ngFor="let opt of exerciseTypes" [ngValue]="opt">{{ opt }}</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Series</span>
+                    <input type="number" [(ngModel)]="ex.sets" min="1" />
+                </label>
+                <label class="field">
+                    <span>Repetitions</span>
+                    <input type="number" [(ngModel)]="ex.reps" min="1" />
+                </label>
+                <label class="field">
+                    <span>Travail (sec)</span>
+                    <input type="number" [(ngModel)]="ex.workSec" min="0" />
+                </label>
+                <label class="field">
+                    <span>Repos (sec)</span>
+                    <input type="number" [(ngModel)]="ex.restSec" min="0" />
+                </label>
+                <label class="field">
+                    <span>Charge (kg)</span>
+                    <input type="number" [(ngModel)]="ex.loadKg" min="0" step="0.5" />
+                </label>
+                <label class="field">
+                    <span>RPE</span>
+                    <input type="number" [(ngModel)]="ex.rpe" min="0" max="10" />
+                </label>
+                <label class="field">
+                    <span>Zone cardiaque</span>
+                    <input type="text" [(ngModel)]="ex.hrZone" placeholder="Zone 2, 70%..." />
+                </label>
+            </div>
 
-            <div *ngIf="item.videos && item.videos.length > 0" class="mt-4 space-y-2">
-                <h5 class="text-sm font-semibold text-[#315f92]">Vidéos</h5>
+            <label class="field">
+                <span>Notes</span>
+                <textarea rows="3" [(ngModel)]="ex.notes" placeholder="Consignes, sensations..."></textarea>
+            </label>
 
-                <div *ngFor="let v of item.videos"
-                    class="flex items-center justify-between gap-3 rounded-xl border border-[#e1e9f5] bg-[#f7f9fe] px-3 py-2">
-                    <div class="min-w-0">
-                        <a [href]="v.url" target="_blank" rel="noopener"
-                            class="block truncate text-sm underline decoration-[#315f92] underline-offset-4">
-                            {{ v.name || 'Vidéo' }}
-                        </a>
-                        <small *ngIf="v.duration && v.duration > 0" class="text-[#527bab]">{{ v.duration }}s</small>
+            <div class="grid video-grid">
+                <label class="field">
+                    <span>Video - URL</span>
+                    <input type="text" [(ngModel)]="ex.videoUrl" placeholder="Lien video" />
+                </label>
+                <label class="field">
+                    <span>Video - Nom</span>
+                    <input type="text" [(ngModel)]="ex.videoName" placeholder="Nom affiche" />
+                </label>
+                <label class="field">
+                    <span>Video - Duree (sec)</span>
+                    <input type="number" [(ngModel)]="ex.videoDuration" min="0" />
+                </label>
+            </div>
+        </div>
+
+        <div class="submit-line">
+            <button type="button" (click)="handleCreatePlanClient()" [disabled]="planClientLoading">
+                {{ planClientLoading ? 'En cours...' : 'Enregistrer le plan' }}
+            </button>
+        </div>
+    </section>
+
+    <section *ngIf="mode === 'manage'" class="manage-panel">
+        <div class="messages">
+            <p *ngIf="listLoading" class="msg info">Chargement...</p>
+            <p *ngIf="listError" class="msg error">{{ listError }}</p>
+        </div>
+
+        <p *ngIf="!listLoading && !listError && plans.length === 0" class="empty-hint">
+            Aucun plan trouve pour ce client.
+        </p>
+
+        <article *ngFor="let plan of plans; trackBy: trackPlan" class="plan-card">
+            <header class="plan-card-header">
+                <div>
+                    <h3>{{ planTitle(plan) }}</h3>
+                    <small *ngIf="plan.createdAt">{{ formatDate(plan.createdAt) }}</small>
+                </div>
+                <div class="plan-card-actions">
+                    <button type="button" (click)="togglePlan(plan)">
+                        {{ plan.expanded ? 'Fermer' : 'Voir' }}
+                    </button>
+                    <button type="button" (click)="openDeletePlan(plan)">Supprimer le plan</button>
+                </div>
+            </header>
+
+            <div *ngIf="plan.expanded" class="plan-card-body">
+                <div class="messages">
+                    <p *ngIf="plan.message" class="msg success">{{ plan.message }}</p>
+                    <p *ngIf="plan.error" class="msg error">{{ plan.error }}</p>
+                </div>
+
+                <div class="exercise-actions">
+                    <button type="button" (click)="addExerciseToPlan(plan)" [disabled]="plan.busy">
+                        + Ajouter un exercice
+                    </button>
+                </div>
+
+                <div *ngFor="let ex of plan.exercisesForm; let i = index; trackBy: trackExercise" class="exercise-card">
+                    <header>
+                        <h4>Exercice {{ i + 1 }}</h4>
+                        <div class="exercise-card-actions">
+                            <button type="button" (click)="moveExercise(plan, i, 'up')" [disabled]="plan.busy || ex.saving">Monter</button>
+                            <button type="button" (click)="moveExercise(plan, i, 'down')" [disabled]="plan.busy || ex.saving">Descendre</button>
+                            <button type="button" (click)="removeExercise(plan, ex)" [disabled]="ex.saving">Supprimer</button>
+                        </div>
+                    </header>
+
+                    <div class="grid">
+                        <label class="field">
+                            <span>Nom</span>
+                            <input type="text" [(ngModel)]="ex.name" />
+                        </label>
+                        <label class="field">
+                            <span>Type</span>
+                            <select [(ngModel)]="ex.type">
+                                <option *ngFor="let opt of exerciseTypes" [ngValue]="opt">{{ opt }}</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Series</span>
+                            <input type="number" [(ngModel)]="ex.sets" min="1" />
+                        </label>
+                        <label class="field">
+                            <span>Repetitions</span>
+                            <input type="number" [(ngModel)]="ex.reps" min="1" />
+                        </label>
+                        <label class="field">
+                            <span>Travail (sec)</span>
+                            <input type="number" [(ngModel)]="ex.workSec" min="0" />
+                        </label>
+                        <label class="field">
+                            <span>Repos (sec)</span>
+                            <input type="number" [(ngModel)]="ex.restSec" min="0" />
+                        </label>
+                        <label class="field">
+                            <span>Charge (kg)</span>
+                            <input type="number" [(ngModel)]="ex.loadKg" min="0" step="0.5" />
+                        </label>
+                        <label class="field">
+                            <span>RPE</span>
+                            <input type="number" [(ngModel)]="ex.rpe" min="0" max="10" />
+                        </label>
+                        <label class="field">
+                            <span>Zone cardiaque</span>
+                            <input type="text" [(ngModel)]="ex.hrZone" />
+                        </label>
                     </div>
 
-                    <button type="button"
-                        class="rounded-full border border-red-300 bg-white px-3 py-1 text-sm text-red-600 transition hover:bg-red-50"
-                        (click)="detachVideo(item._id, v.videoId)">
-                        Retirer
+                    <label class="field">
+                        <span>Notes</span>
+                        <textarea rows="3" [(ngModel)]="ex.notes"></textarea>
+                    </label>
+
+                    <div class="grid video-grid">
+                        <label class="field">
+                            <span>Video - URL</span>
+                            <input type="text" [(ngModel)]="ex.videoUrl" />
+                        </label>
+                        <label class="field">
+                            <span>Video - Nom</span>
+                            <input type="text" [(ngModel)]="ex.videoName" />
+                        </label>
+                        <label class="field">
+                            <span>Video - Duree (sec)</span>
+                            <input type="number" [(ngModel)]="ex.videoDuration" min="0" />
+                        </label>
+                    </div>
+
+                    <div class="messages">
+                        <p *ngIf="ex.success" class="msg success">{{ ex.success }}</p>
+                        <p *ngIf="ex.error" class="msg error">{{ ex.error }}</p>
+                    </div>
+
+                    <div class="submit-line">
+                        <button type="button" (click)="saveExercise(plan, ex)" [disabled]="ex.saving">
+                            {{ ex.saving ? 'En cours...' : 'Enregistrer cet exercice' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="videos-block" *ngIf="plan.videos.length > 0">
+                    <h5>Videos attachees</h5>
+                    <ul>
+                        <li *ngFor="let vid of plan.videos">
+                            <a [href]="vid.url" target="_blank" rel="noopener">{{ vid.name || 'Video' }}</a>
+                            <span *ngIf="vid.duration">- {{ vid.duration }}s</span>
+                            <button type="button" (click)="detachVideo(plan, vid.videoId)" [disabled]="plan.busy">Retirer</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="exercise-actions">
+                    <button type="button" (click)="openPlanVideoPicker(plan._id)">
+                        + Ajouter une video
                     </button>
                 </div>
             </div>
         </article>
-    </div>
+
+        <div class="messages video-messages">
+            <p *ngIf="videoUploadLoading" class="msg info">Upload video en cours...</p>
+            <p *ngIf="videoUploadSuccess" class="msg success">{{ videoUploadSuccess }}</p>
+            <p *ngIf="videoUploadError" class="msg error">{{ videoUploadError }}</p>
+        </div>
+    </section>
 </div>
 
-<input #newPlanVideoInput type="file" accept="video/*" class="hidden" multiple
-    (change)="handleNewPlanVideoPicked($event)" />
-<input #planVideoInput type="file" accept="video/*" class="hidden" multiple (change)="handleVideoPicked($event)" />
+<input #planVideoInput type="file" accept="video/*" class="hidden" (change)="handleVideoPicked($event)" multiple />
 
-<div *ngIf="mode === 'manage'" class="mt-4">
-    <p *ngIf="videoUploadLoading" class="text-sm text-[#527bab]">Upload en cours...</p>
-    <p *ngIf="videoUploadSuccess" class="text-sm font-semibold text-green-600">{{ videoUploadSuccess }}</p>
-    <p *ngIf="videoUploadError" class="text-sm font-semibold text-red-600">{{ videoUploadError }}</p>
-</div>
-
-<div *ngIf="deleteConfirmOpen" class="fixed inset-0 z-[210] flex items-center justify-center bg-black/60 px-4"
-    (click)="cancelDeletePlan()">
-    <div class="w-full max-w-md rounded-2xl bg-white p-6 text-[#315f92] shadow-2xl" (click)="$event.stopPropagation()">
-        <h3 class="text-lg font-semibold">Confirmer la suppression</h3>
-        <p class="mt-3 text-sm text-[#527bab]">{{ getDeletePlanLabel() }}</p>
-        <p *ngIf="deleteError" class="mt-2 text-sm font-semibold text-red-600">{{ deleteError }}</p>
-        <div class="mt-6 flex flex-wrap justify-end gap-3">
-            <button type="button"
-                class="rounded-full border border-[#315f92] px-4 py-2 text-sm font-semibold text-[#315f92] transition hover:bg-[#315f92]/10"
-                (click)="cancelDeletePlan()">Annuler</button>
-            <button type="button"
-                class="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-                (click)="confirmDeletePlan()">Supprimer</button>
+<div *ngIf="deleteConfirmOpen" class="modal-backdrop" (click)="cancelDeletePlan()">
+    <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Confirmer la suppression</h3>
+        <p>Supprimer le plan "{{ deleteTargetTitle }}" ?</p>
+        <p *ngIf="deleteError" class="msg error">{{ deleteError }}</p>
+        <div class="modal-actions">
+            <button type="button" (click)="cancelDeletePlan()">Annuler</button>
+            <button type="button" (click)="confirmDeletePlan()">Supprimer</button>
         </div>
     </div>
 </div>

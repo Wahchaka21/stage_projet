@@ -30,11 +30,13 @@ router.get("/rdv/user/:userId", isAuth, isAdmin, rdvController.handleGetRdvsForU
 
 router.post("/createPlanClient", isAuth, isAdmin, adminController.handleCreatePlanClient)
 router.delete("/deletePlanClient/:planClientId", isAuth, isAdmin, adminController.handleDeletePlanClient)
-
 router.get("/planClient/user/:userId", isAuth, isAdmin, planClientController.handleGetPlanClientForUser)
-
 router.post("/planClient/:planClientId/attachVideo", isAuth, isAdmin, uploadVideo.single("video"), adminController.handleUploadVideoForPlan)
 router.delete("/planClient/:planClientId/video/:videoId", isAuth, isAdmin, adminController.handleDeleteVideoFromPlan)
+router.post("/planClient/:planClientId/exercises/quick-add", isAuth, isAdmin, planClientController.handleQuickAddExercise)
+router.patch("/planClient/:planClientId/exercises/:exerciseId", isAuth, isAdmin, planClientController.handleUpdateExercise)
+router.delete("/planClient/:planClientId/exercises/:exerciseId", isAuth, isAdmin, planClientController.handleRemoveExercise)
+router.patch("/planClient/:planClientId/exercises/reorder", isAuth, isAdmin, planClientController.handleReorderExercises)
 
 router.post("/createCetteSemaine", isAuth, isAdmin, cetteSemaineController.handleCreateCetteSemaine)
 router.delete("/deleteCetteSemaine/:cetteSemaineId", isAuth, isAdmin, cetteSemaineController.handleDeleteCetteSemaine)
