@@ -24,6 +24,8 @@ Pour que l'application fonctionne correctement, il est important de créer à l'
 
 ## 2) Cloner le dépôt
 
+Dans un terminal :
+
 ```bash
 git clone https://github.com/<VOTRE_UTILISATEUR>/<VOTRE_REPO>.git
 cd <VOTRE_REPO>
