@@ -5,9 +5,13 @@ if [ -n "${APP_DIR:-}" ]; then
   cd "$APP_DIR"
 fi
 
-if [ ! -d node_modules ]; then
+if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
   echo "==> Installing npm dependencies in ${APP_DIR:-$(pwd)}"
-  npm ci
+  if [ -f package-lock.json ]; then
+    npm ci
+  else
+    npm install
+  fi
 fi
 
 echo "==> Running: $*"
