@@ -42,7 +42,9 @@ PORT=3000
 MONGO_URL=mongodb://localhost:27017/projet_stage
 
 JWT_SECRET=VOTRE_CODE
+
 JWT_ISSUER=your-app
+
 JWT_AUDIENCE=your-api
 
 CORS_ORIGINS=http://localhost:5173, http://localhost:4200
